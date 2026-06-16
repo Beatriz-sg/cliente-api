@@ -1,0 +1,64 @@
+[
+  {
+    "id": 1,
+    "name": "Mini Donuts",
+
+    "description": "Chocolate com morango",
+
+    "price": 19.90,
+
+    "oldPrice": 24.90,
+
+    "discount": 20,
+
+    "category": "Donuts",
+
+    "imageUrl": "mini-donuts.jpg",
+
+    "storeName": "Doce Mimi",
+
+    "deliveryTime": "15 - 25 min"
+  },
+
+  {
+    "id": 2,
+    "name": "Bolo Red Velvet",
+
+    "description": "Fatia premium",
+
+    "price": 22.90,
+
+    "oldPrice": 29.90,
+
+    "discount": 25,
+
+    "category": "Bolos",
+
+    "imageUrl": "red-velvet.jpg",
+
+    "storeName": "Doce Paladar",
+
+    "deliveryTime": "20 - 30 min"
+  },
+
+  {
+    "id": 3,
+    "name": "Brownie Gourmet",
+
+    "description": "Chocolate belga",
+
+    "price": 14.90,
+
+    "oldPrice": 18.90,
+
+    "discount": 15,
+
+    "category": "Brownies",
+
+    "imageUrl": "brownie.jpg",
+
+    "storeName": "Doce Sabor",
+
+    "deliveryTime": "25 - 35 min"
+  }
+]

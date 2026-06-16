@@ -1,0 +1,35 @@
+[
+  {
+    "id": 1,
+    "name": "Doce Mimi",
+    "description": "Bolos • Tortas • Doces Gourmet",
+    "imageUrl": "doce-mimi.jpg",
+    "rating": 4.9,
+    "deliveryTime": "15 - 25 min",
+    "deliveryFee": "R$ 4,00",
+    "featured": true,
+    "isOpen": true
+  },
+  {
+    "id": 2,
+    "name": "Doce Paladar",
+    "description": "Cupcakes • Brigadeiros • Chocolates",
+    "imageUrl": "doce-paladar.jpg",
+    "rating": 4.8,
+    "deliveryTime": "20 - 30 min",
+    "deliveryFee": "Grátis",
+    "featured": true,
+    "isOpen": true
+  },
+  {
+    "id": 3,
+    "name": "Doce Sabor",
+    "description": "Doces • Brownies • Cookies",
+    "imageUrl": "doce-sabor.jpg",
+    "rating": 4.7,
+    "deliveryTime": "25 - 35 min",
+    "deliveryFee": "R$ 5,00",
+    "featured": false,
+    "isOpen": true
+  }
+]

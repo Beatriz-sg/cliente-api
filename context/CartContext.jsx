@@ -1,0 +1,165 @@
+import React, {
+  createContext,
+  useContext,
+  useState,
+} from "react";
+
+const CartContext = createContext({});
+
+export function CartProvider({ children }) {
+
+  const [itens, setItens] = useState([]);
+
+  // ADICIONAR ITEM
+
+  function addItem(produto) {
+
+    const itemExiste = itens.find(
+      (item) => item.id === produto.id
+    );
+
+    // SE ITEM JÁ EXISTE
+
+    if (itemExiste) {
+
+      const novosItens = itens.map((item) => {
+
+        if (item.id === produto.id) {
+
+          return {
+            ...item,
+            quantidade: item.quantidade + 1,
+          };
+        }
+
+        return item;
+      });
+
+      setItens(novosItens);
+
+      return;
+    }
+
+    // NOVO ITEM
+
+    setItens([
+      ...itens,
+      {
+        ...produto,
+        quantidade: 1,
+      },
+    ]);
+  }
+
+  // REMOVER ITEM
+
+  function removerItem(id) {
+
+    const novosItens = itens.filter(
+      (item) => item.id !== id
+    );
+
+    setItens(novosItens);
+  }
+
+  // AUMENTAR QUANTIDADE
+
+  function aumentarQuantidade(id) {
+
+    const novosItens = itens.map((item) => {
+
+      if (item.id === id) {
+
+        return {
+          ...item,
+          quantidade: item.quantidade + 1,
+        };
+      }
+
+      return item;
+    });
+
+    setItens(novosItens);
+  }
+
+  // DIMINUIR QUANTIDADE
+
+  function diminuirQuantidade(id) {
+
+  const itemExiste = itens.find(
+    (item) => item.id === id
+  );
+
+  if (
+    itemExiste &&
+    itemExiste.quantidade === 1
+  ) {
+
+    removerItem(id);
+
+    return;
+  }
+
+  const novosItens = itens.map((item) => {
+
+    if (item.id === id) {
+
+      return {
+        ...item,
+        quantidade: item.quantidade - 1,
+      };
+    }
+
+    return item;
+  });
+
+  setItens(novosItens);
+}
+
+  // LIMPAR CARRINHO
+
+  function limparCarrinho() {
+
+    setItens([]);
+  }
+
+  // SUBTOTAL
+
+  const subtotal = itens.reduce((total, item) => {
+
+    return total + item.preco * item.quantidade;
+
+  }, 0);
+
+  return (
+
+    <CartContext.Provider
+      value={{
+        itens,
+
+        addItem,
+
+        removerItem,
+
+        aumentarQuantidade,
+
+        diminuirQuantidade,
+
+        limparCarrinho,
+
+        subtotal,
+      }}
+    >
+
+      {children}
+
+    </CartContext.Provider>
+  );
+}
+
+// HOOK
+
+export function useCart() {
+
+  return useContext(CartContext);
+}
