@@ -237,7 +237,7 @@ export default function RegisterScreen() {
         >
           <Image
             source={require("../../assets/images/logo.png")}
-            style={{ width: 95, height: 95, borderRadius: 70, elevation: 8 }}
+            style={{ width: 95, height: 95, borderRadius: 70}}
           />
         </View>
 
