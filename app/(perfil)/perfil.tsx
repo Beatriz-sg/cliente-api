@@ -1,226 +1,680 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  Image, ActivityIndicator, Alert,
+  Image, ActivityIndicator, Alert, ActionSheetIOS, Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getUser, getToken, logout } from "../../services/authService";
-import { apiUrl } from "../../constants/api";
+import { logout } from "../../services/authService";
+import {
+  getPerfil, atualizarPerfil, uploadFoto, buscarCep,
+  type ClientePerfil,
+} from "../../services/perfilService";
 
-interface UserData {
-  id: number;
-  nome: string;
-  email: string;
-  telefone?: string;
-  cpf?: string;
-  endereco?: string;
-  bairro?: string;
-  cidade?: string;
-  uf?: string;
-  cep?: string;
-  apelido?: string;
-  foto?: string;
+// ─── CONSTANTES ──────────────────────────────────────────────────────────────
+
+const PREFERENCIAS_OPCOES = [
+  "Bolos", "Cupcakes", "Brigadeiros", "Tortas",
+  "Churros", "Mousses", "Docinhos", "Brownies",
+];
+
+const RESTRICOES_OPCOES = [
+  "Sem Glúten", "Sem Lactose", "Vegano", "Diabético",
+  "Sem Açúcar", "Sem Ovos", "Sem Nozes",
+];
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+function maskCep(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 8);
+  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
 }
 
+function maskPhone(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  if (d.length === 0) return "";
+  if (d.length <= 2) return `(${d}`;
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
+function maskDate(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 8);
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
+  return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
+}
+
+function maskCpf(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+}
+
+/** Converte YYYY-MM-DD → DD/MM/YYYY para exibição */
+function isoParaDisplay(iso?: string): string {
+  if (!iso) return "";
+  // Já no formato display
+  if (iso.includes("/")) return iso;
+  const partes = iso.split("-");
+  if (partes.length !== 3) return iso;
+  const [y, m, d] = partes;
+  return `${d}/${m}/${y}`;
+}
+
+/** Converte DD/MM/YYYY → YYYY-MM-DD para envio */
+function displayParaIso(display: string): string {
+  if (!display || !display.includes("/")) return display;
+  const [d, m, y] = display.split("/");
+  if (!d || !m || !y || y.length < 4) return display;
+  return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+}
+
+function preencherCampos(data: ClientePerfil, setters: ReturnType<typeof criarSetters>) {
+  setters.setNome(data.nome ?? "");
+  setters.setApelido(data.apelido ?? "");
+  setters.setDataNascimento(isoParaDisplay(data.dataNascimento));
+  setters.setEmail(data.email ?? "");
+  setters.setTelefone(maskPhone(data.telefone ?? ""));
+  setters.setCep(maskCep(data.cep ?? ""));
+  setters.setLogradouro(data.logradouro ?? "");
+  setters.setNumero(data.numero ?? "");
+  setters.setComplemento(data.complemento ?? "");
+  setters.setBairro(data.bairro ?? "");
+  setters.setCidade(data.cidade ?? "");
+  setters.setEstado(data.estado ?? "");
+  setters.setFotoPerfil(data.fotoPerfil ?? null);
+  setters.setPreferencias(data.preferencias ?? []);
+  setters.setRestricoes(data.restricoes ?? []);
+}
+
+// Tipo auxiliar usado apenas dentro do componente
+type Setters = {
+  setNome: (v: string) => void;
+  setApelido: (v: string) => void;
+  setDataNascimento: (v: string) => void;
+  setEmail: (v: string) => void;
+  setTelefone: (v: string) => void;
+  setCep: (v: string) => void;
+  setLogradouro: (v: string) => void;
+  setNumero: (v: string) => void;
+  setComplemento: (v: string) => void;
+  setBairro: (v: string) => void;
+  setCidade: (v: string) => void;
+  setEstado: (v: string) => void;
+  setFotoPerfil: (v: string | null) => void;
+  setPreferencias: (v: string[]) => void;
+  setRestricoes: (v: string[]) => void;
+};
+
+// Dummy só para inferir o tipo — nunca chamado
+function criarSetters(): Setters { return {} as Setters; }
+
+// ─── ESTILOS ─────────────────────────────────────────────────────────────────
+
+const inputBase = {
+  backgroundColor: "#fff",
+  borderRadius: 14,
+  paddingHorizontal: 16,
+  paddingVertical: 13,
+  fontSize: 14,
+  color: "#333",
+  borderWidth: 1,
+  borderColor: "#f1d4ff",
+} as const;
+
+const inputReadonly = {
+  ...inputBase,
+  backgroundColor: "#f5f5f5",
+  color: "#888",
+} as const;
+
+const labelSt = {
+  color: "#888",
+  fontSize: 12,
+  marginBottom: 5,
+  fontWeight: "600" as const,
+};
+
+const secaoTitulo = {
+  fontSize: 15,
+  fontWeight: "bold" as const,
+  color: "#333",
+  marginBottom: 14,
+  marginTop: 6,
+};
+
+// ─── COMPONENTE ──────────────────────────────────────────────────────────────
+
 export default function PerfilScreen() {
-  const [user, setUser] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [perfil, setPerfil] = useState<ClientePerfil | null>(null);
+
   const [nome, setNome] = useState("");
-  const [telefone, setTelefone] = useState("");
   const [apelido, setApelido] = useState("");
-  const [endereco, setEndereco] = useState("");
+  const [dataNascimento, setDataNascimento] = useState("");
+  const [email, setEmail] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [cep, setCep] = useState("");
+  const [logradouro, setLogradouro] = useState("");
+  const [numero, setNumero] = useState("");
+  const [complemento, setComplemento] = useState("");
   const [bairro, setBairro] = useState("");
   const [cidade, setCidade] = useState("");
-  const [uf, setUf] = useState("");
-  const [cep, setCep] = useState("");
-  const [foto, setFoto] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [estado, setEstado] = useState("");
+  const [fotoPerfil, setFotoPerfil] = useState<string | null>(null);
+  const [preferencias, setPreferencias] = useState<string[]>([]);
+  const [restricoes, setRestricoes] = useState<string[]>([]);
 
-  useEffect(() => {
-    (async () => {
-      const u = await getUser();
-      if (u) {
-        setUser(u);
-        setNome(u.nome ?? "");
-        setTelefone(u.telefone ?? "");
-        setApelido(u.apelido ?? "");
-        setEndereco(u.endereco ?? "");
-        setBairro(u.bairro ?? "");
-        setCidade(u.cidade ?? "");
-        setUf(u.uf ?? "");
-        setCep(u.cep ?? "");
-        setFoto(u.foto ?? null);
-      }
+  const setters: Setters = {
+    setNome, setApelido, setDataNascimento, setEmail, setTelefone,
+    setCep, setLogradouro, setNumero, setComplemento, setBairro,
+    setCidade, setEstado, setFotoPerfil, setPreferencias, setRestricoes,
+  };
+
+  // ── Carregamento ─────────────────────────────────────────────────────────
+
+  const carregarPerfil = useCallback(async () => {
+    setLoading(true);
+    try {
+      // 1ª tentativa: busca do backend (dados mais completos e atualizados)
+      const data = await getPerfil();
+      setPerfil(data);
+      preencherCampos(data, setters);
+    } catch {
+      // 2ª tentativa: usa cache do AsyncStorage (pode estar sem cpf/dataNascimento
+      // se foi salvo por versão antiga — normalizar() resolve isso)
+      try {
+        const raw = await AsyncStorage.getItem("user");
+        if (raw) {
+          const u = JSON.parse(raw) as any;
+          // Normalização manual do cache para cobrir campos renomeados
+          const cached: ClientePerfil = {
+            id: u.id,
+            nome: u.nome ?? "",
+            apelido: u.apelido ?? undefined,
+            cpf: u.cpf ?? u.documento ?? "",
+            dataNascimento: u.dataNascimento ?? u.data_nascimento ?? undefined,
+            email: u.email ?? "",
+            telefone: u.telefone ?? undefined,
+            cep: u.cep ?? undefined,
+            logradouro: u.logradouro ?? u.endereco ?? undefined,
+            numero: u.numero ?? undefined,
+            complemento: u.complemento ?? undefined,
+            bairro: u.bairro ?? undefined,
+            cidade: u.cidade ?? undefined,
+            estado: u.estado ?? u.uf ?? undefined,
+            fotoPerfil: u.fotoPerfil ?? u.foto ?? u.foto_perfil ?? undefined,
+            preferencias: parseLista(u.preferencias),
+            restricoes: parseLista(u.restricoes),
+          };
+          setPerfil(cached);
+          preencherCampos(cached, setters);
+        }
+      } catch { /* sem dados disponíveis */ }
+    } finally {
       setLoading(false);
-    })();
-  }, []);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function pickImage() {
+  useEffect(() => { carregarPerfil(); }, [carregarPerfil]);
+
+  function parseLista(v: any): string[] {
+    if (!v) return [];
+    if (Array.isArray(v)) return v;
+    try { return JSON.parse(v); } catch { return []; }
+  }
+
+  // ── CEP auto-fill ────────────────────────────────────────────────────────
+
+  async function handleCepChange(v: string) {
+    const masked = maskCep(v);
+    setCep(masked);
+    if (masked.replace(/\D/g, "").length === 8) {
+      const dados = await buscarCep(masked);
+      if (dados) {
+        setLogradouro(dados.logradouro);
+        setBairro(dados.bairro);
+        setCidade(dados.cidade);
+        setEstado(dados.estado);
+      }
+    }
+  }
+
+  // ── Foto ─────────────────────────────────────────────────────────────────
+
+  function abrirOpcoesFoto() {
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: ["Cancelar", "Tirar foto", "Escolher da galeria"], cancelButtonIndex: 0 },
+        (i) => { if (i === 1) tirarFoto(); else if (i === 2) escolherGaleria(); }
+      );
+    } else {
+      Alert.alert("Foto de perfil", "Escolha uma opção", [
+        { text: "Cancelar", style: "cancel" },
+        { text: "📷 Câmera", onPress: tirarFoto },
+        { text: "🖼️ Galeria", onPress: escolherGaleria },
+      ]);
+    }
+  }
+
+  async function tirarFoto() {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permissão necessária", "Permita o acesso à câmera nas configurações.");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true, aspect: [1, 1], quality: 0.75,
+    });
+    if (!result.canceled && result.assets[0]) setFotoPerfil(result.assets[0].uri);
+  }
+
+  async function escolherGaleria() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permissão necessária", "Permita o acesso à galeria para escolher uma foto.");
+      Alert.alert("Permissão necessária", "Permita o acesso à galeria nas configurações.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
+      allowsEditing: true, aspect: [1, 1], quality: 0.75,
     });
-    if (!result.canceled && result.assets[0]) {
-      setFoto(result.assets[0].uri);
-    }
+    if (!result.canceled && result.assets[0]) setFotoPerfil(result.assets[0].uri);
   }
 
+  // ── Toggle chips ─────────────────────────────────────────────────────────
+
+  function toggleItem(lista: string[], item: string, setLista: (v: string[]) => void) {
+    setLista(lista.includes(item) ? lista.filter((i) => i !== item) : [...lista, item]);
+  }
+
+  // ── Salvar ────────────────────────────────────────────────────────────────
+
   async function salvar() {
-    if (!user?.id) return;
+    if (!nome.trim()) {
+      Alert.alert("Atenção", "O nome é obrigatório.");
+      return;
+    }
     setSaving(true);
     try {
-      const token = await getToken();
-      const payload: any = { nome, telefone, apelido, endereco, bairro, cidade, uf, cep };
+      let fotoUrl: string | undefined = fotoPerfil ?? undefined;
 
-      // Upload de foto se mudou e é URI local
-      if (foto && foto.startsWith("file")) {
-        const formData = new FormData();
-        formData.append("foto", { uri: foto, name: "perfil.jpg", type: "image/jpeg" } as any);
-        const fotoRes = await fetch(apiUrl(`/cliente/foto/${user.id}`), {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        });
-        if (fotoRes.ok) {
-          const fotoData = await fotoRes.json();
-          payload.foto = fotoData.fotoUrl ?? fotoData.foto ?? foto;
+      // Upload de foto apenas quando for URI local (nova foto selecionada)
+      const isLocalUri = fotoPerfil && (
+        fotoPerfil.startsWith("file://") ||
+        fotoPerfil.startsWith("content://") ||
+        fotoPerfil.startsWith("/")
+      );
+      if (isLocalUri) {
+        try {
+          fotoUrl = await uploadFoto(fotoPerfil!);
+        } catch (uploadErr: any) {
+          // Upload falhou mas não bloqueia salvar os outros dados
+          Alert.alert(
+            "Atenção",
+            `Não foi possível enviar a foto: ${uploadErr.message ?? "Erro desconhecido"}.\nOs outros dados serão salvos normalmente.`
+          );
+          fotoUrl = perfil?.fotoPerfil ?? undefined; // mantém a foto anterior
         }
       }
 
-      const res = await fetch(apiUrl(`/cliente/atualizar/${user.id}`), {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(payload),
-      });
+      const payload = {
+        nome: nome.trim(),
+        apelido: apelido.trim() || undefined,
+        dataNascimento: dataNascimento ? displayParaIso(dataNascimento) : undefined,
+        email: email.trim(),
+        telefone: telefone.replace(/\D/g, "") || undefined,
+        cep: cep.replace(/\D/g, "") || undefined,
+        logradouro: logradouro.trim() || undefined,
+        numero: numero.trim() || undefined,
+        complemento: complemento.trim() || undefined,
+        bairro: bairro.trim() || undefined,
+        cidade: cidade.trim() || undefined,
+        estado: estado.trim() || undefined,
+        fotoPerfil: fotoUrl,
+        preferencias,
+        restricoes,
+      };
 
-      if (!res.ok) throw new Error("Erro ao salvar.");
-
-      const updated = await res.json();
-      const newUser = { ...user, ...updated, foto: payload.foto ?? foto };
-      await AsyncStorage.setItem("user", JSON.stringify(newUser));
-      setUser(newUser);
-      setFoto(newUser.foto ?? null);
-      Alert.alert("Perfil atualizado! 💖");
+      const atualizado = await atualizarPerfil(payload);
+      await AsyncStorage.setItem("user", JSON.stringify(atualizado));
+      setPerfil(atualizado);
+      setFotoPerfil(atualizado.fotoPerfil ?? null);
+      Alert.alert("💖 Perfil atualizado!", "Suas informações foram salvas com sucesso.");
     } catch (e: any) {
-      Alert.alert("Erro", e.message ?? "Não foi possível salvar.");
+      Alert.alert("Erro ao salvar", e.message ?? "Não foi possível salvar o perfil.");
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleLogout() {
-    Alert.alert("Sair", "Deseja sair da conta?", [
+  // ── Logout ────────────────────────────────────────────────────────────────
+
+  function handleLogout() {
+    Alert.alert("Sair da conta", "Tem certeza que deseja sair?", [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Sair", style: "destructive", onPress: async () => {
           await logout();
           router.replace("/(auth)/login");
-        }
+        },
       },
     ]);
   }
+
+  // ── Loading ───────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff7fc" }}>
         <ActivityIndicator size="large" color="#a855f7" />
+        <Text style={{ color: "#a855f7", marginTop: 12, fontSize: 14 }}>Carregando perfil...</Text>
       </View>
     );
   }
 
+  const fotoSource = fotoPerfil
+    ? { uri: fotoPerfil }
+    : require("../../assets/images/logo.png");
+
+  // CPF com máscara para exibição
+  const cpfExibicao = perfil?.cpf ? maskCpf(perfil.cpf) : "";
+
   return (
     <LinearGradient colors={["#fff7fc", "#f7ecff"]} style={{ flex: 1 }}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-        {/* HEADER */}
-        <View style={{ paddingTop: 60, paddingHorizontal: 22, marginBottom: 8 }}>
-          <TouchableOpacity onPress={() => router.back()}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
+        {/* ── HEADER ── */}
+        <View style={{ paddingTop: 60, paddingHorizontal: 22, marginBottom: 4 }}>
+          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <MaterialIcons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
-          <Text style={{ fontSize: 26, fontWeight: "bold", color: "#333", marginTop: 12 }}>Meu Perfil</Text>
+          <Text style={{ fontSize: 26, fontWeight: "bold", color: "#333", marginTop: 12 }}>
+            Meu Perfil
+          </Text>
         </View>
 
-        {/* AVATAR */}
-        <View style={{ alignItems: "center", marginVertical: 20 }}>
-          <TouchableOpacity onPress={pickImage} activeOpacity={0.8}>
-            {foto ? (
-              <Image source={{ uri: foto }} style={{ width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: "#a855f7" }} />
-            ) : (
-              <Image source={require("../../assets/images/logo.png")} style={{ width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: "#a855f7" }} />
-            )}
+        {/* ── AVATAR ── */}
+        <View style={{ alignItems: "center", marginVertical: 24 }}>
+          <TouchableOpacity onPress={abrirOpcoesFoto} activeOpacity={0.85}>
+            <Image
+              source={fotoSource}
+              style={{
+                width: 108, height: 108, borderRadius: 54,
+                borderWidth: 3, borderColor: "#a855f7",
+              }}
+            />
             <View style={{
-              position: "absolute", bottom: 0, right: 0,
-              backgroundColor: "#a855f7", borderRadius: 14,
-              padding: 6, borderWidth: 2, borderColor: "#fff",
+              position: "absolute", bottom: 2, right: 2,
+              backgroundColor: "#a855f7", borderRadius: 16,
+              padding: 7, borderWidth: 2, borderColor: "#fff",
             }}>
-              <MaterialIcons name="camera-alt" size={14} color="#fff" />
+              <MaterialIcons name="camera-alt" size={15} color="#fff" />
             </View>
           </TouchableOpacity>
-          <Text style={{ marginTop: 10, fontSize: 16, fontWeight: "bold", color: "#333" }}>
+
+          <Text style={{ marginTop: 12, fontSize: 17, fontWeight: "bold", color: "#333" }}>
             {nome || "Seu nome"}
           </Text>
-          {user?.email ? (
-            <Text style={{ color: "#777", fontSize: 13 }}>{user.email}</Text>
+          {perfil?.email ? (
+            <Text style={{ color: "#999", fontSize: 13, marginTop: 3 }}>{perfil.email}</Text>
           ) : null}
         </View>
 
-        {/* FORMULÁRIO */}
         <View style={{ paddingHorizontal: 22 }}>
-          {[
-            { label: "Nome", value: nome, set: setNome },
-            { label: "Apelido", value: apelido, set: setApelido },
-            { label: "Telefone", value: telefone, set: setTelefone, keyboard: "phone-pad" as const },
-            { label: "CEP", value: cep, set: setCep, keyboard: "numeric" as const },
-            { label: "Endereço", value: endereco, set: setEndereco },
-            { label: "Bairro", value: bairro, set: setBairro },
-            { label: "Cidade", value: cidade, set: setCidade },
-            { label: "UF", value: uf, set: setUf },
-          ].map(({ label, value, set, keyboard }) => (
-            <View key={label} style={{ marginBottom: 14 }}>
-              <Text style={{ color: "#777", fontSize: 12, marginBottom: 4 }}>{label}</Text>
+
+          {/* ════ DADOS PESSOAIS ════ */}
+          <Text style={secaoTitulo}>👤 Dados Pessoais</Text>
+
+          <Text style={labelSt}>Nome *</Text>
+          <TextInput
+            value={nome}
+            onChangeText={setNome}
+            placeholder="Seu nome completo"
+            placeholderTextColor="#bbb"
+            style={{ ...inputBase, marginBottom: 14 }}
+          />
+
+          <Text style={labelSt}>Apelido</Text>
+          <TextInput
+            value={apelido}
+            onChangeText={setApelido}
+            placeholder="Como prefere ser chamado"
+            placeholderTextColor="#bbb"
+            style={{ ...inputBase, marginBottom: 14 }}
+          />
+
+          {/* CPF — somente leitura */}
+          <Text style={labelSt}>CPF (não editável)</Text>
+          <View style={{ marginBottom: 14 }}>
+            <TextInput
+              value={cpfExibicao || "Não informado"}
+              editable={false}
+              style={inputReadonly}
+            />
+            {!cpfExibicao && (
+              <Text style={{ color: "#f59e0b", fontSize: 11, marginTop: 4 }}>
+                ⚠️ CPF não carregado — verifique a API
+              </Text>
+            )}
+          </View>
+
+          <Text style={labelSt}>Data de Nascimento</Text>
+          <View style={{ marginBottom: 14 }}>
+            <TextInput
+              value={dataNascimento}
+              onChangeText={(v) => setDataNascimento(maskDate(v))}
+              keyboardType="numeric"
+              maxLength={10}
+              placeholder="DD/MM/AAAA"
+              placeholderTextColor="#bbb"
+              style={inputBase}
+            />
+            {!dataNascimento && (
+              <Text style={{ color: "#f59e0b", fontSize: 11, marginTop: 4 }}>
+                ⚠️ Data não carregada — verifique a API
+              </Text>
+            )}
+          </View>
+
+          <Text style={labelSt}>E-mail *</Text>
+          <TextInput
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            placeholder="seu@email.com"
+            placeholderTextColor="#bbb"
+            style={{ ...inputBase, marginBottom: 14 }}
+          />
+
+          <Text style={labelSt}>Telefone</Text>
+          <TextInput
+            value={telefone}
+            onChangeText={(v) => setTelefone(maskPhone(v))}
+            keyboardType="phone-pad"
+            maxLength={15}
+            placeholder="(11) 99999-9999"
+            placeholderTextColor="#bbb"
+            style={{ ...inputBase, marginBottom: 24 }}
+          />
+
+          {/* ════ ENDEREÇO ════ */}
+          <Text style={secaoTitulo}>📍 Endereço</Text>
+
+          <Text style={labelSt}>CEP</Text>
+          <TextInput
+            value={cep}
+            onChangeText={handleCepChange}
+            keyboardType="numeric"
+            maxLength={9}
+            placeholder="00000-000"
+            placeholderTextColor="#bbb"
+            style={{ ...inputBase, marginBottom: 14 }}
+          />
+
+          <Text style={labelSt}>Logradouro</Text>
+          <TextInput
+            value={logradouro}
+            onChangeText={setLogradouro}
+            placeholder="Rua, Avenida..."
+            placeholderTextColor="#bbb"
+            style={{ ...inputBase, marginBottom: 14 }}
+          />
+
+          <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={labelSt}>Número</Text>
               <TextInput
-                value={value}
-                onChangeText={set}
-                keyboardType={keyboard ?? "default"}
-                style={{
-                  backgroundColor: "#fff", borderRadius: 14,
-                  paddingHorizontal: 16, paddingVertical: 12,
-                  fontSize: 14, color: "#333",
-                  borderWidth: 1, borderColor: "#f1d4ff",
-                }}
+                value={numero}
+                onChangeText={setNumero}
+                keyboardType="numeric"
+                placeholder="Nº"
+                placeholderTextColor="#bbb"
+                style={inputBase}
               />
             </View>
-          ))}
+            <View style={{ flex: 2 }}>
+              <Text style={labelSt}>Complemento</Text>
+              <TextInput
+                value={complemento}
+                onChangeText={setComplemento}
+                placeholder="Apto, Bloco..."
+                placeholderTextColor="#bbb"
+                style={inputBase}
+              />
+            </View>
+          </View>
 
-          {/* SALVAR */}
-          <TouchableOpacity onPress={salvar} disabled={saving} activeOpacity={0.85} style={{ borderRadius: 16, overflow: "hidden", marginTop: 8 }}>
+          <Text style={labelSt}>Bairro</Text>
+          <TextInput
+            value={bairro}
+            onChangeText={setBairro}
+            placeholder="Bairro"
+            placeholderTextColor="#bbb"
+            style={{ ...inputBase, marginBottom: 14 }}
+          />
+
+          <View style={{ flexDirection: "row", gap: 10, marginBottom: 26 }}>
+            <View style={{ flex: 3 }}>
+              <Text style={labelSt}>Cidade</Text>
+              <TextInput
+                value={cidade}
+                onChangeText={setCidade}
+                placeholder="Cidade"
+                placeholderTextColor="#bbb"
+                style={inputBase}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={labelSt}>Estado</Text>
+              <TextInput
+                value={estado}
+                onChangeText={setEstado}
+                autoCapitalize="characters"
+                maxLength={2}
+                placeholder="UF"
+                placeholderTextColor="#bbb"
+                style={inputBase}
+              />
+            </View>
+          </View>
+
+          {/* ════ PREFERÊNCIAS ════ */}
+          <Text style={secaoTitulo}>🍰 Preferências</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 24 }}>
+            {PREFERENCIAS_OPCOES.map((item) => {
+              const ativo = preferencias.includes(item);
+              return (
+                <TouchableOpacity
+                  key={item}
+                  onPress={() => toggleItem(preferencias, item, setPreferencias)}
+                  activeOpacity={0.75}
+                  style={{
+                    paddingHorizontal: 16, paddingVertical: 9,
+                    borderRadius: 22, borderWidth: 1.5,
+                    borderColor: ativo ? "#a855f7" : "#ddb6f8",
+                    backgroundColor: ativo ? "#a855f7" : "#fdf5ff",
+                  }}
+                >
+                  <Text style={{
+                    color: ativo ? "#fff" : "#9333ea",
+                    fontSize: 13, fontWeight: "600",
+                  }}>
+                    {item}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* ════ RESTRIÇÕES ALIMENTARES ════ */}
+          <Text style={secaoTitulo}>🚫 Restrições Alimentares</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 30 }}>
+            {RESTRICOES_OPCOES.map((item) => {
+              const ativo = restricoes.includes(item);
+              return (
+                <TouchableOpacity
+                  key={item}
+                  onPress={() => toggleItem(restricoes, item, setRestricoes)}
+                  activeOpacity={0.75}
+                  style={{
+                    paddingHorizontal: 16, paddingVertical: 9,
+                    borderRadius: 22, borderWidth: 1.5,
+                    borderColor: ativo ? "#ef4444" : "#fca5a5",
+                    backgroundColor: ativo ? "#ef4444" : "#fff5f5",
+                  }}
+                >
+                  <Text style={{
+                    color: ativo ? "#fff" : "#dc2626",
+                    fontSize: 13, fontWeight: "600",
+                  }}>
+                    {item}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* ════ BOTÃO SALVAR ════ */}
+          <TouchableOpacity
+            onPress={salvar}
+            disabled={saving}
+            activeOpacity={0.85}
+            style={{ borderRadius: 18, overflow: "hidden", marginBottom: 14 }}
+          >
             <LinearGradient
               colors={["#ff69b4", "#a855f7"]}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              style={{ paddingVertical: 16, alignItems: "center" }}
+              style={{ paddingVertical: 17, alignItems: "center" }}
             >
-              {saving ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>Salvar alterações</Text>
-              )}
+              {saving
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>Salvar Perfil</Text>
+              }
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* SAIR */}
-          <TouchableOpacity onPress={handleLogout} style={{ marginTop: 16, alignItems: "center", paddingVertical: 14 }}>
-            <Text style={{ color: "#ef4444", fontWeight: "bold", fontSize: 15 }}>Sair da conta</Text>
+          {/* ════ LOGOUT ════ */}
+          <TouchableOpacity
+            onPress={handleLogout}
+            style={{ alignItems: "center", paddingVertical: 14, marginBottom: 6 }}
+          >
+            <Text style={{ color: "#ef4444", fontWeight: "bold", fontSize: 15 }}>
+              Sair da conta
+            </Text>
           </TouchableOpacity>
+
         </View>
       </ScrollView>
     </LinearGradient>

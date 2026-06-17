@@ -1,13 +1,13 @@
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   Switch,
-  Alert,
-  ActivityIndicator,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { LinearGradient } from "expo-linear-gradient";
@@ -63,14 +63,12 @@ export default function CadastroSenhaScreen() {
   }
 
   return (
-
     <LinearGradient
       colors={["#f8edf7", "#f2dcff"]}
       style={{
         flex: 1,
       }}
     >
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
@@ -80,7 +78,6 @@ export default function CadastroSenhaScreen() {
           paddingBottom: 40,
         }}
       >
-
         {/* LOGO */}
 
         <View
@@ -94,7 +91,6 @@ export default function CadastroSenhaScreen() {
             zIndex: 10,
           }}
         >
-
           <Image
             source={require("../../assets/images/logo.png")}
             style={{
@@ -106,11 +102,8 @@ export default function CadastroSenhaScreen() {
               shadowColor: "#c45ccf",
               shadowOpacity: 0.25,
               shadowRadius: 10,
-
-              
             }}
           />
-
         </View>
 
         {/* CARD */}
@@ -134,7 +127,6 @@ export default function CadastroSenhaScreen() {
             elevation: 12,
           }}
         >
-
           {/* ETAPA */}
 
           <Text
@@ -168,7 +160,6 @@ export default function CadastroSenhaScreen() {
               marginBottom: 18,
             }}
           >
-
             <LinearGradient
               colors={["#ff69b4", "#a855f7"]}
               style={{
@@ -181,15 +172,8 @@ export default function CadastroSenhaScreen() {
                 alignItems: "center",
               }}
             >
-
-              <MaterialIcons
-                name="lock"
-                size={30}
-                color="#fff"
-              />
-
+              <MaterialIcons name="lock" size={30} color="#fff" />
             </LinearGradient>
-
           </View>
 
           {/* TÍTULO */}
@@ -312,7 +296,6 @@ export default function CadastroSenhaScreen() {
               marginBottom: 22,
             }}
           >
-
             <Switch
               value={aceitouTermos}
               onValueChange={setAceitouTermos}
@@ -320,11 +303,7 @@ export default function CadastroSenhaScreen() {
                 false: "#ddd",
                 true: "#c084fc",
               }}
-              thumbColor={
-                aceitouTermos
-                  ? "#a855f7"
-                  : "#f4f4f4"
-              }
+              thumbColor={aceitouTermos ? "#a855f7" : "#f4f4f4"}
             />
 
             <Text
@@ -341,7 +320,6 @@ export default function CadastroSenhaScreen() {
               }}
             >
               Ao continuar, você concorda com os{" "}
-
               <Text
                 style={{
                   color: "#a855f7",
@@ -349,10 +327,8 @@ export default function CadastroSenhaScreen() {
                 }}
               >
                 Termos de Uso
-              </Text>
-
-              {" "}e está ciente da{" "}
-
+              </Text>{" "}
+              e está ciente da{" "}
               <Text
                 style={{
                   color: "#a855f7",
@@ -361,10 +337,8 @@ export default function CadastroSenhaScreen() {
               >
                 Declaração de Privacidade
               </Text>
-
               .
             </Text>
-
           </View>
 
           {/* BOTÃO */}
@@ -380,7 +354,6 @@ export default function CadastroSenhaScreen() {
               opacity: aceitouTermos ? 1 : 0.5,
             }}
           >
-
             <LinearGradient
               colors={["#ff69b4", "#a855f7"]}
               start={{ x: 0, y: 0 }}
@@ -406,15 +379,11 @@ export default function CadastroSenhaScreen() {
                 </Text>
               )}
             </LinearGradient>
-
           </TouchableOpacity>
 
           {/* VOLTAR */}
 
-          <TouchableOpacity
-            onPress={() => router.back()}
-          >
-
+          <TouchableOpacity onPress={() => router.back()}>
             <Text
               style={{
                 marginTop: 12,
@@ -428,13 +397,9 @@ export default function CadastroSenhaScreen() {
             >
               Voltar
             </Text>
-
           </TouchableOpacity>
-
         </View>
-
       </ScrollView>
-
     </LinearGradient>
   );
 }

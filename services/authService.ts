@@ -1,5 +1,5 @@
-import { apiUrl } from "../constants/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { apiUrl } from "../constants/api";
 
 export interface RegisterPayload {
   // Obrigatórios
@@ -19,7 +19,10 @@ export interface LoginPayload {
   senha: string;
 }
 
-async function extractErrorMessage(res: Response, fallback: string): Promise<string> {
+async function extractErrorMessage(
+  res: Response,
+  fallback: string,
+): Promise<string> {
   try {
     const text = await res.text();
     if (!text) return fallback;
@@ -37,7 +40,10 @@ export async function register(data: RegisterPayload) {
     body: JSON.stringify(data),
   });
   if (!res.ok) {
-    const msg = await extractErrorMessage(res, "Erro ao cadastrar. Tente novamente.");
+    const msg = await extractErrorMessage(
+      res,
+      "Erro ao cadastrar. Tente novamente.",
+    );
     throw new Error(msg);
   }
   const text = await res.text();
@@ -62,6 +68,16 @@ export async function login(data: LoginPayload) {
     await AsyncStorage.setItem("userToken", json.token);
   }
   const user = json?.user || json;
+
+  // Permite apenas clientes no app cliente
+  if (user?.role !== "ROLE_CLIENTE") {
+    throw new Error("Este aplicativo é exclusivo para clientes.");
+  }
+
+  // Salva token e dados do usuário no AsyncStorage
+  if (json?.token) {
+    await AsyncStorage.setItem("userToken", json.token);
+  }
   if (user) {
     await AsyncStorage.setItem("user", JSON.stringify(user));
     if (user.id) await AsyncStorage.setItem("userId", String(user.id));
@@ -73,7 +89,13 @@ export async function login(data: LoginPayload) {
 }
 
 export async function logout() {
-  await AsyncStorage.multiRemove(["userToken", "user", "userId", "userName", "userEmail"]);
+  await AsyncStorage.multiRemove([
+    "userToken",
+    "user",
+    "userId",
+    "userName",
+    "userEmail",
+  ]);
 }
 
 export async function getToken() {

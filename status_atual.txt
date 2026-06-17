@@ -1,0 +1,33 @@
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   .env
+	modified:   app/(perfil)/perfil.tsx
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	ANALISE_FAVORITOS.md
+	BACKEND_PERFIL.md
+	DOCUMENTACAO_TECNICA.md
+	FavoritoController.java
+	FavoritoLoja.java
+	FavoritoLojaRepository.java
+	FavoritoService.java
+	GUIA_TESTES_FAVORITOS.md
+	INDICE_REFERENCIA.md
+	INSTRUCOES_VALIDACAO.md
+	RELATORIO_FINAL.md
+	RESUMO_CORRECOES.md
+	STATUS_FINAL.md
+	SUMARIO_EXECUTIVO.md
+	SUMARIO_VISUAL.md
+	V2__Create_Favorites_Tables.sql
+	context/UsuarioContext.tsx
+	migration_perfil_cliente.sql
+	services/perfilService.ts
+	status_atual.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")

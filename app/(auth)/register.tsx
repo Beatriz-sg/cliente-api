@@ -1,17 +1,17 @@
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  Switch,
-  Alert,
-  ActivityIndicator,
 } from "react-native";
 
-import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useState } from "react";
 import { register } from "../../services/authService";
@@ -171,10 +171,44 @@ export default function RegisterScreen() {
         ...(telefone.trim() && { telefone: telefone.replace(/\D/g, "") }),
       };
       await register(payload);
-      Alert.alert("Sucesso", "Cadastro realizado com sucesso!", [
-        { text: "OK", onPress: () => router.replace("/(tabs)/home") },
-      ]);
+
+      Alert.alert(
+        "Cadastro realizado",
+        "Agora faça seu login para continuar.",
+        [
+          {
+            text: "Entrar",
+            onPress: () =>
+              router.replace({
+                pathname: "/(auth)/entrar",
+                params: { email },
+              }),
+          },
+        ],
+      );
     } catch (e: any) {
+      if (
+        e.message?.toLowerCase().includes("email") ||
+        e.message?.toLowerCase().includes("e-mail")
+      ) {
+        Alert.alert(
+          "E-mail já cadastrado",
+          "Este e-mail já possui uma conta. Deseja fazer login?",
+          [
+            {
+              text: "Cancelar",
+              style: "cancel",
+            },
+            {
+              text: "Ir para Login",
+              onPress: () => router.replace("/entrar"),
+            },
+          ],
+        );
+
+        return;
+      }
+
       Alert.alert("Erro", e.message);
     } finally {
       setLoading(false);

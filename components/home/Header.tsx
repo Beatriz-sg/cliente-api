@@ -20,7 +20,12 @@ export default function Header() {
         const user = await getUser();
         if (!active) return;
 
-        setProfilePhoto(user?.foto ?? null);
+setProfilePhoto(
+  user?.fotoPerfil ||
+  user?.foto ||
+  user?.foto_perfil ||
+  null
+);
 
         const { status } = await Location.requestForegroundPermissionsAsync();
 
