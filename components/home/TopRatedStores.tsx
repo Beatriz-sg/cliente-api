@@ -1,26 +1,11 @@
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-} from "react-native";
-
-import { getStores } from "../../services/storeService";
-
-import { useEffect, useState } from "react";
+import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
+import { stores } from "../../data/stores";
+import { router } from "expo-router";
 
 export default function TopRatedStores() {
-  const [stores, setStores] = useState<any[]>([]);
-
-  useEffect(() => {
-    async function loadStores() {
-      const data = await getStores();
-      setStores(Array.isArray(data) ? data : []);
-    }
-
-    loadStores();
-  }, []);
+  const lojasBemAvaliadas = [...stores]
+    .sort((a, b) => b.rating - a.rating)
+    .slice(0, 5);
 
   return (
     <View
@@ -47,10 +32,18 @@ export default function TopRatedStores() {
           paddingLeft: 22,
         }}
       >
-        {stores.map((store: any) => (
+        {lojasBemAvaliadas.map((store) => (
           <TouchableOpacity
             key={store.id}
             activeOpacity={0.8}
+            onPress={() =>
+              router.push({
+                pathname: "/loja",
+                params: {
+                  lojaId: store.id,
+                },
+              })
+            }
             style={{
               width: 155,
               backgroundColor: "#fff",
@@ -60,7 +53,7 @@ export default function TopRatedStores() {
             }}
           >
             <Image
-              source={require("../../assets/images/stores/doce-mimi.jpg")}
+              source={store.image}
               style={{
                 width: "100%",
                 height: 100,

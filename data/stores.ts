@@ -198,4 +198,28 @@ export const stores = [
 
     nearby: false,
   },
+
+  {
+  id: 11,
+  name: "Casa dos Cupcakes",
+  description: "Cupcakes Artesanais",
+  image: require("../assets/images/stores/cupcake_mania.png"),
+  rating: 4.8,
+  deliveryTime: "20 - 30 min",
+  deliveryFee: "R$ 4,99",
+  featured: true,
+  nearby: true,
+},
+{
+  id: 12,
+  name: "Reino do Chocolate",
+  description: "Doces Finos",
+  image: require("../assets/images/stores/doces finos.jpg"),
+  rating: 4.9,
+  deliveryTime: "15 - 25 min",
+  deliveryFee: "Grátis",
+  featured: true,
+  nearby: true,
+}
+
 ];

@@ -83,9 +83,21 @@ function parseListaOuArray(valor: any): string[] {
 
 export async function getPerfil(): Promise<ClientePerfil> {
   const headers = await authHeaders();
-  const res = await fetch(apiUrl("/cliente/perfil"), { headers });
-  if (!res.ok) throw new Error(`Erro ao carregar perfil: ${res.status}`);
+
+  console.log("TOKEN HEADERS:", headers);
+
+  const res = await fetch(apiUrl("/cliente/perfil"), {
+    headers,
+  });
+
+  console.log("STATUS PERFIL:", res.status);
+
+  if (!res.ok) {
+    throw new Error(`Erro ao carregar perfil: ${res.status}`);
+  }
+
   const raw = await res.json();
+
   return normalizar(raw);
 }
 

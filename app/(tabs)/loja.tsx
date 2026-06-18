@@ -1,90 +1,107 @@
+import { View, Text, TouchableOpacity, ScrollView, Image } from "react-native";
+
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  Image,
-} from "react-native";
+  toggleProdutoFavorito,
+  getProdutosFavoritos,
+  toggleLojaFavorita,
+  getLojasFavoritas,
+} from "../../services/favoritosLocalService";
 
 import { LinearGradient } from "expo-linear-gradient";
 
+import { produtos } from "../../data/produtos";
+
+import { useState, useEffect } from "react";
+
 import { MaterialIcons } from "@expo/vector-icons";
 
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import { useCart } from "../../context/CartContext";
 
+import { stores } from "../../data/stores";
+
 export default function LojaScreen() {
+  const { lojaId } = useLocalSearchParams();
+  const lojaSelecionada = stores.find((item) => item.id === Number(lojaId));
 
-  const { addItem } = useCart();
+  const produtosFiltrados = produtos.filter(
+    (produto) => produto.lojaId === Number(lojaId),
+  );
 
-  const produtos = [
-    {
-      id: 1,
-      nome: "Bolo Red Velvet",
-      descricao: "Fatia gourmet especial",
-      preco: 24.9,
-      imagem:
-        "https://images.unsplash.com/photo-1578985545062-69928b1d9587",
-    },
+  console.log("Loja selecionada:", lojaId);
 
-    {
-      id: 2,
-      nome: "Donut Chocolate",
-      descricao: "Cobertura premium",
-      preco: 12.9,
-      imagem:
-        "https://images.unsplash.com/photo-1509440159596-0249088772ff",
-    },
+  const { addItem } = useCart() as any;
 
-    {
-      id: 3,
-      nome: "Milk Shake",
-      descricao: "Chocolate com chantilly",
-      preco: 18.9,
-      imagem:
-        "https://images.unsplash.com/photo-1579954115563-e72bf1381629",
-    },
+  const [favoritos, setFavoritos] = useState<number[]>([]);
 
-    {
-      id: 4,
-      nome: "Cupcake Morango",
-      descricao: "Recheio cremoso",
-      preco: 14.9,
-      imagem:
-        "https://images.unsplash.com/photo-1486427944299-d1955d23e34d",
-    },
-  ];
+  const [lojaFavorita, setLojaFavorita] = useState(false);
 
-  function adicionarCarrinho(produto) {
+  async function carregarLojaFavorita() {
+    const lojas = await getLojasFavoritas();
 
+    const existe = lojas.some((item: any) => item.id === 999);
+
+    setLojaFavorita(existe);
+  }
+
+  async function favoritarLoja() {
+    await toggleLojaFavorita({
+      id: 999,
+      nomeFantasia: "Sweet Cake",
+      cidade: "",
+      fotoUrl: "https://images.unsplash.com/photo-1551024601-bec78aea704b",
+    });
+
+    carregarLojaFavorita();
+  }
+
+  useEffect(() => {
+    carregarFavoritos();
+    carregarLojaFavorita();
+  }, []);
+
+  async function carregarFavoritos() {
+    const favoritosSalvos = await getProdutosFavoritos();
+
+    setFavoritos(favoritosSalvos.map((item: any) => item.id));
+  }
+
+  async function favoritarProduto(produto: any) {
+    await toggleProdutoFavorito({
+      id: produto.id,
+      nome: produto.nome,
+      descricao: produto.descricao,
+      preco: produto.preco,
+      fotoUrl: null,
+    });
+
+    carregarFavoritos();
+  }
+
+  function adicionarCarrinho(produto: any) {
     addItem(produto);
 
     router.push("/carrinho");
   }
 
   return (
-
     <LinearGradient
       colors={["#fff7fc", "#f7ecff"]}
       style={{
         flex: 1,
       }}
     >
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingBottom: 120,
         }}
       >
-
         {/* BANNER */}
 
         <Image
-          source={{
-            uri: "https://images.unsplash.com/photo-1551024601-bec78aea704b",
-          }}
+          source={lojaSelecionada?.image}
           style={{
             width: "100%",
             height: 240,
@@ -106,7 +123,6 @@ export default function LojaScreen() {
             paddingHorizontal: 22,
           }}
         >
-
           {/* LOJA */}
 
           <View
@@ -118,9 +134,7 @@ export default function LojaScreen() {
               alignItems: "center",
             }}
           >
-
             <View>
-
               <Text
                 style={{
                   fontSize: 28,
@@ -130,7 +144,7 @@ export default function LojaScreen() {
                   color: "#333",
                 }}
               >
-                Sweet Cake 🍰
+                {lojaSelecionada?.name}
               </Text>
 
               <Text
@@ -142,21 +156,17 @@ export default function LojaScreen() {
                   fontSize: 14,
                 }}
               >
-                ⭐ 4.9 • 35-50 min
+                ⭐ {lojaSelecionada?.rating} • {lojaSelecionada?.deliveryTime}
               </Text>
-
             </View>
 
-            <TouchableOpacity>
-
+            <TouchableOpacity onPress={() => favoritarLoja()}>
               <MaterialIcons
-                name="favorite-border"
+                name={lojaFavorita ? "favorite" : "favorite-border"}
                 size={30}
                 color="#ff69b4"
               />
-
             </TouchableOpacity>
-
           </View>
 
           {/* CATEGORIAS */}
@@ -169,187 +179,151 @@ export default function LojaScreen() {
               marginBottom: 24,
             }}
           >
-
-            {[
-              "Bolos",
-              "Donuts",
-              "Milk Shake",
-              "Cupcakes",
-              "Doces",
-            ].map((categoria) => (
-
-              <TouchableOpacity
-                key={categoria}
-                activeOpacity={0.8}
-                style={{
-                  backgroundColor: "#f9f3fb",
-
-                  paddingHorizontal: 18,
-                  paddingVertical: 10,
-
-                  borderRadius: 20,
-
-                  marginRight: 10,
-                }}
-              >
-
-                <Text
+            {["Bolos", "Donuts", "Milk Shake", "Cupcakes", "Doces"].map(
+              (categoria) => (
+                <TouchableOpacity
+                  key={categoria}
+                  activeOpacity={0.8}
                   style={{
-                    color: "#a855f7",
+                    backgroundColor: "#f9f3fb",
 
-                    fontWeight: "600",
+                    paddingHorizontal: 18,
+                    paddingVertical: 10,
+
+                    borderRadius: 20,
+
+                    marginRight: 10,
                   }}
                 >
-                  {categoria}
-                </Text>
+                  <Text
+                    style={{
+                      color: "#a855f7",
 
-              </TouchableOpacity>
-
-            ))}
-
+                      fontWeight: "600",
+                    }}
+                  >
+                    {categoria}
+                  </Text>
+                </TouchableOpacity>
+              ),
+            )}
           </ScrollView>
 
           {/* PRODUTOS */}
+          {/* PRODUTOS */}
 
-          {produtos.map((produto) => (
+          {produtosFiltrados.map((produto) => {
+            const favorito = favoritos.includes(produto.id);
 
-            <View
-              key={produto.id}
-              style={{
-                backgroundColor: "#fff",
-
-                borderRadius: 26,
-
-                marginBottom: 18,
-
-                padding: 14,
-
-                flexDirection: "row",
-
-                shadowColor: "#c45ccf",
-
-                shadowOpacity: 0.08,
-
-                shadowRadius: 10,
-
-                elevation: 4,
-              }}
-            >
-
-              {/* IMAGEM */}
-
-              <Image
-                source={{
-                  uri: produto.imagem,
-                }}
-                style={{
-                  width: 100,
-                  height: 100,
-
-                  borderRadius: 20,
-                }}
-              />
-
-              {/* INFO */}
-
+            return (
               <View
+                key={produto.id}
                 style={{
-                  flex: 1,
-
-                  marginLeft: 14,
-
-                  justifyContent: "space-between",
+                  backgroundColor: "#fff",
+                  borderRadius: 26,
+                  marginBottom: 18,
+                  padding: 14,
+                  flexDirection: "row",
+                  shadowColor: "#c45ccf",
+                  shadowOpacity: 0.08,
+                  shadowRadius: 10,
+                  elevation: 4,
                 }}
               >
+                <Image
+                  source={produto.imagem}
+                  style={{
+                    width: 100,
+                    height: 100,
+                    borderRadius: 20,
+                  }}
+                />
 
-                <View>
+                {/* FAVORITO */}
 
-                  <Text
-                    style={{
-                      fontSize: 18,
-
-                      fontWeight: "bold",
-
-                      color: "#333",
-                    }}
-                  >
-                    {produto.nome}
-                  </Text>
-
-                  <Text
-                    style={{
-                      color: "#777",
-
-                      marginTop: 6,
-
-                      lineHeight: 20,
-                    }}
-                  >
-                    {produto.descricao}
-                  </Text>
-
-                </View>
+                <TouchableOpacity
+                  onPress={() => favoritarProduto(produto)}
+                  style={{
+                    position: "absolute",
+                    top: 10,
+                    right: 10,
+                    zIndex: 99,
+                  }}
+                >
+                  <MaterialIcons
+                    name={favorito ? "favorite" : "favorite-border"}
+                    size={24}
+                    color="#ff4d8d"
+                  />
+                </TouchableOpacity>
 
                 <View
                   style={{
-                    flexDirection: "row",
-
+                    flex: 1,
+                    marginLeft: 14,
                     justifyContent: "space-between",
-
-                    alignItems: "center",
                   }}
                 >
+                  <View>
+                    <Text
+                      style={{
+                        fontSize: 18,
+                        fontWeight: "bold",
+                        color: "#333",
+                      }}
+                    >
+                      {produto.nome}
+                    </Text>
 
-                  <Text
+                    <Text
+                      style={{
+                        color: "#777",
+                        marginTop: 6,
+                        lineHeight: 20,
+                      }}
+                    >
+                      {produto.descricao}
+                    </Text>
+                  </View>
+
+                  <View
                     style={{
-                      color: "#ff69b4",
-
-                      fontSize: 20,
-
-                      fontWeight: "bold",
-                    }}
-                  >
-                    R$ {produto.preco.toFixed(2)}
-                  </Text>
-
-                  {/* ADICIONAR */}
-
-                  <TouchableOpacity
-                    onPress={() => adicionarCarrinho(produto)}
-                    activeOpacity={0.8}
-                    style={{
-                      backgroundColor: "#a855f7",
-
-                      width: 42,
-                      height: 42,
-
-                      borderRadius: 14,
-
-                      justifyContent: "center",
+                      flexDirection: "row",
+                      justifyContent: "space-between",
                       alignItems: "center",
                     }}
                   >
+                    <Text
+                      style={{
+                        color: "#ff69b4",
+                        fontSize: 20,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      R$ {produto.preco.toFixed(2)}
+                    </Text>
 
-                    <MaterialIcons
-                      name="add"
-                      size={24}
-                      color="#fff"
-                    />
-
-                  </TouchableOpacity>
-
+                    <TouchableOpacity
+                      onPress={() => adicionarCarrinho(produto)}
+                      activeOpacity={0.8}
+                      style={{
+                        backgroundColor: "#a855f7",
+                        width: 42,
+                        height: 42,
+                        borderRadius: 14,
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <MaterialIcons name="add" size={24} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-
               </View>
-
-            </View>
-
-          ))}
-
+            );
+          })}
         </View>
-
       </ScrollView>
-
     </LinearGradient>
   );
 }

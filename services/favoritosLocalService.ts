@@ -51,8 +51,6 @@ export async function toggleProdutoFavorito(produto: any) {
   return novaLista;
 }
 
-/* ADICIONE AQUI EMBAIXO */
-
 export async function removerLojaFavorita(id: number) {
   const favoritas = await getLojasFavoritas();
 

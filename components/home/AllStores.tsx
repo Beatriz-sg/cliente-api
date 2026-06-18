@@ -1,9 +1,4 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Image,
-} from "react-native";
+import { View, Text, TouchableOpacity, Image } from "react-native";
 
 import { router } from "expo-router";
 
@@ -13,21 +8,36 @@ import { Store } from "../../types/Store";
 
 import { MaterialIcons } from "@expo/vector-icons";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+import {
+  toggleLojaFavorita,
+  getLojasFavoritas,
+} from "../../services/favoritosLocalService";
 
 export default function AllStores() {
-  const [favoritos, setFavoritos] = useState<
-    number[]
-  >([]);
+  const [favoritos, setFavoritos] = useState<number[]>([]);
 
-  function toggleFavorito(id: number) {
-    if (favoritos.includes(id)) {
-      setFavoritos(
-        favoritos.filter((item) => item !== id)
-      );
-    } else {
-      setFavoritos([...favoritos, id]);
-    }
+  useEffect(() => {
+    carregarFavoritos();
+  }, []);
+
+  async function carregarFavoritos() {
+    const favoritas = await getLojasFavoritas();
+
+    setFavoritos(favoritas.map((item: any) => item.id));
+  }
+
+  async function toggleFavorito(store: Store) {
+    await toggleLojaFavorita({
+      id: store.id,
+      nomeFantasia: store.name,
+      cidade: "",
+      fotoUrl: null,
+    });
+    const favoritas = await getLojasFavoritas();
+
+    setFavoritos(favoritas.map((item: any) => item.id));
   }
 
   return (
@@ -66,8 +76,7 @@ export default function AllStores() {
         }}
       >
         {stores.map((store: Store) => {
-          const favorito =
-            favoritos.includes(store.id);
+          const favorito = favoritos.includes(store.id);
 
           return (
             <TouchableOpacity
@@ -75,9 +84,8 @@ export default function AllStores() {
               onPress={() =>
                 router.push({
                   pathname: "/loja",
-
                   params: {
-                    loja: store.name,
+                    lojaId: store.id,
                   },
                 })
               }
@@ -117,9 +125,7 @@ export default function AllStores() {
                 {/* FAVORITE */}
 
                 <TouchableOpacity
-                  onPress={() =>
-                    toggleFavorito(store.id)
-                  }
+                  onPress={() => toggleFavorito(store)}
                   style={{
                     position: "absolute",
 
@@ -127,8 +133,7 @@ export default function AllStores() {
 
                     right: 8,
 
-                    backgroundColor:
-                      "rgba(255,255,255,0.95)",
+                    backgroundColor: "rgba(255,255,255,0.95)",
 
                     width: 30,
 
@@ -142,11 +147,7 @@ export default function AllStores() {
                   }}
                 >
                   <MaterialIcons
-                    name={
-                      favorito
-                        ? "favorite"
-                        : "favorite-border"
-                    }
+                    name={favorito ? "favorite" : "favorite-border"}
                     size={18}
                     color="#ff4d8d"
                   />

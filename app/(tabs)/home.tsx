@@ -3,15 +3,14 @@ import Categories from "../../components/home/Categories";
 import OffersCarousel from "../../components/home/OffersCarousel";
 import AllStores from "../../components/home/AllStores";
 import BottomTabs from "../../components/home/BottomTabs";
-import { getOffers } from "../../services/offerService";
-import { Offer } from "../../types/Offer";
 import { categories } from "../../data/categories";
 import TopRatedStores from "../../components/home/TopRatedStores";
 import NearbyStores from "../../components/home/NearbyStores";
+import { produtos } from "../../data/produtos";
 
 import { View, TextInput, ScrollView } from "react-native";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef} from "react";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { MaterialIcons } from "@expo/vector-icons";
@@ -19,43 +18,26 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useCart } from "../../context/CartContext";
 
 export default function HomeScreen() {
-  const { itens, addItem } = useCart();
+  const { itens, addItem } = useCart() as any;
 
   const [categoriaSelecionada, setCategoriaSelecionada] = useState("Todos");
 
   const [busca, setBusca] = useState("");
 
   const scrollRef = useRef(null);
-  const [offers, setOffers] = useState<any[]>([]);
 
-  useEffect(() => {
-    async function loadOffers() {
-      const data = await getOffers();
-      setOffers(data);
-    }
-    loadOffers();
-  }, []);
+  
   // FILTER OFFERS
 
-  const filteredOffers = offers.filter((offer: Offer) => {
-    const buscaLower = busca.toLowerCase();
-
-    const matchBusca =
-      offer.name.toLowerCase().includes(buscaLower) ||
-      offer.category.toLowerCase().includes(buscaLower);
-
-    const matchCategoria =
-      categoriaSelecionada === "Todos" ||
-      offer.category === categoriaSelecionada;
-
-    return matchBusca && matchCategoria;
-  });
+  const filteredOffers = produtos.filter((produto) =>
+  produto.nome.toLowerCase().includes(busca.toLowerCase())
+);
 
   // ADD CART
 
-  function adicionarCarrinho(offer: Offer) {
-    addItem(offer);
-  }
+  function adicionarCarrinho(produto: any) {
+  addItem(produto);
+}
 
   return (
     <LinearGradient

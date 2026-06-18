@@ -1,33 +1,44 @@
+import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
+
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-} from "react-native";
+  toggleProdutoFavorito,
+  getProdutosFavoritos,
+} from "../../services/favoritosLocalService";
 
 import { LinearGradient } from "expo-linear-gradient";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { MaterialIcons } from "@expo/vector-icons";
-
-import { offerImages } from "../../constants/images";
 
 export default function OffersCarousel({
   produtosFiltrados,
   adicionarCarrinho,
-}) {
-  const [favoritos, setFavoritos] = useState([]);
+}: any) {
+  const [favoritos, setFavoritos] = useState<number[]>([]);
 
-  function toggleFavorito(id) {
-    if (favoritos.includes(id)) {
-      setFavoritos(
-        favoritos.filter((item) => item !== id)
-      );
-    } else {
-      setFavoritos([...favoritos, id]);
-    }
+  useEffect(() => {
+    carregarFavoritos();
+  }, []);
+
+  async function carregarFavoritos() {
+    const favoritosSalvos = await getProdutosFavoritos();
+
+    setFavoritos(favoritosSalvos.map((item: any) => item.id));
+  }
+
+  async function toggleFavorito(produto: any) {
+    await toggleProdutoFavorito({
+      id: produto.id,
+      nome: produto.nome,
+      preco: produto.preco,
+      descricao: produto.descricao,
+      fotoUrl: "",
+    });
+
+    const favoritosSalvos = await getProdutosFavoritos();
+
+    setFavoritos(favoritosSalvos.map((item: any) => item.id));
   }
 
   return (
@@ -67,40 +78,26 @@ export default function OffersCarousel({
           paddingLeft: 18,
         }}
       >
-        {(produtosFiltrados ?? []).map((produto) => {
-          const favorito =
-            favoritos.includes(produto.id);
+        {(produtosFiltrados ?? []).map((produto: any) => {
+          const favorito = favoritos.includes(produto.id);
 
           return (
             <TouchableOpacity
               key={produto.id}
               activeOpacity={0.85}
               style={{
-                width: 155,
-
+                width: 170,
+                height: 330,
                 backgroundColor: "#fff",
-
                 borderRadius: 20,
-
                 marginRight: 14,
-
                 overflow: "hidden",
-
-                shadowColor: "#000",
-
-                shadowOpacity: 0.04,
-
-                shadowRadius: 6,
-
-                elevation: 2,
               }}
             >
               {/* FAVORITE */}
 
               <TouchableOpacity
-                onPress={() =>
-                  toggleFavorito(produto.id)
-                }
+                onPress={() => toggleFavorito(produto)}
                 style={{
                   position: "absolute",
 
@@ -115,9 +112,7 @@ export default function OffersCarousel({
                   style={{
                     fontSize: 18,
 
-                    color: favorito
-                      ? "#ff4d8d"
-                      : "#fff",
+                    color: favorito ? "#ff4d8d" : "#fff",
                   }}
                 >
                   {favorito ? "♥" : "♡"}
@@ -154,22 +149,18 @@ export default function OffersCarousel({
                     fontWeight: "bold",
                   }}
                 >
-                  {produto.discount}% OFF
+                  {produto.desconto}% OFF
                 </Text>
               </View>
 
               {/* IMAGE */}
 
               <Image
-                source={
-                  offerImages[
-                    produto.imageUrl
-                  ]
-                }
+                source={produto.imagem}
                 style={{
                   width: "100%",
-
-                  height: 105,
+                  height: 120,
+                  resizeMode: "cover",
                 }}
               />
 
@@ -178,6 +169,8 @@ export default function OffersCarousel({
               <View
                 style={{
                   padding: 12,
+                  flex: 1,
+                  justifyContent: "space-between",
                 }}
               >
                 <Text
@@ -190,7 +183,7 @@ export default function OffersCarousel({
                     color: "#333",
                   }}
                 >
-                  {produto.name}
+                  {produto.nome}
                 </Text>
 
                 <Text
@@ -202,7 +195,7 @@ export default function OffersCarousel({
                     fontSize: 12,
                   }}
                 >
-                  {produto.category}
+                  {produto.descricao}
                 </Text>
 
                 {/* DELIVERY */}
@@ -233,7 +226,7 @@ export default function OffersCarousel({
                       fontWeight: "600",
                     }}
                   >
-                    {produto.deliveryTime}
+                    20 - 40 min
                   </Text>
                 </View>
 
@@ -253,56 +246,29 @@ export default function OffersCarousel({
                       color: "#7e22ce",
                     }}
                   >
-                    R$ {produto.price.toFixed(2)}
-                  </Text>
-
-                  <Text
-                    style={{
-                      fontSize: 11,
-
-                      color: "#999",
-
-                      textDecorationLine:
-                        "line-through",
-
-                      marginTop: 2,
-                    }}
-                  >
-                    R${" "}
-                    {produto.oldPrice.toFixed(
-                      2
-                    )}
+                    R$ {produto.preco.toFixed(2)}
                   </Text>
                 </View>
 
                 {/* BUTTON */}
 
                 <TouchableOpacity
-                  onPress={() =>
-                    adicionarCarrinho(produto)
-                  }
+                  onPress={() => adicionarCarrinho(produto)}
                   activeOpacity={0.85}
                   style={{
-                    marginTop: 12,
-
+                    marginTop: "auto",
                     borderRadius: 12,
-
                     overflow: "hidden",
                   }}
                 >
                   <LinearGradient
-                    colors={[
-                      "#f9a8d4",
-                      "#ec4899",
-                      "#9333ea",
-                    ]}
+                    colors={["#f9a8d4", "#ec4899", "#9333ea"]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={{
                       height: 38,
 
-                      justifyContent:
-                        "center",
+                      justifyContent: "center",
 
                       alignItems: "center",
                     }}

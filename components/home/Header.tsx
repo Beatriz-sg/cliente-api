@@ -17,21 +17,20 @@ export default function Header() {
       setLoading(true);
 
       (async () => {
+      
         const user = await getPerfil();
 
         if (!active) return;
-        const foto =
-          user?.fotoPerfil || user?.foto || user?.foto_perfil || null;
+
+        const foto = user?.fotoPerfil || null;
 
         const apiUrl = process.env.EXPO_PUBLIC_API_URL;
 
         const fotoFinal =
           foto && !foto.startsWith("http") ? `${apiUrl}${foto}` : foto;
 
-        
-          setProfilePhoto(fotoFinal);
+        setProfilePhoto(fotoFinal);
 
-      
         const { status } = await Location.requestForegroundPermissionsAsync();
 
         if (status === "granted") {
