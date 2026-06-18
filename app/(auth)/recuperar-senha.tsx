@@ -1,10 +1,10 @@
 import {
-  View,
+  Image,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  Image,
-  ScrollView,
+  View,
 } from "react-native";
 
 import { LinearGradient } from "expo-linear-gradient";
@@ -12,16 +12,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 
 export default function RecuperarSenhaScreen() {
-
   return (
-
     <LinearGradient
       colors={["#f8edf7", "#f2dcff"]}
       style={{
         flex: 1,
       }}
     >
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
@@ -31,7 +28,6 @@ export default function RecuperarSenhaScreen() {
           paddingBottom: 40,
         }}
       >
-
         {/* LOGO */}
 
         <View
@@ -45,7 +41,6 @@ export default function RecuperarSenhaScreen() {
             zIndex: 10,
           }}
         >
-
           <Image
             source={require("../../assets/images/logo.png")}
             style={{
@@ -57,10 +52,8 @@ export default function RecuperarSenhaScreen() {
               shadowColor: "#c45ccf",
               shadowOpacity: 0.25,
               shadowRadius: 12,
-
-              }}
+            }}
           />
-
         </View>
 
         {/* CARD */}
@@ -84,7 +77,6 @@ export default function RecuperarSenhaScreen() {
             elevation: 12,
           }}
         >
-
           {/* TÍTULO */}
 
           <Text
@@ -166,7 +158,6 @@ export default function RecuperarSenhaScreen() {
               overflow: "hidden",
             }}
           >
-
             <LinearGradient
               colors={["#ff69b4", "#a855f7"]}
               start={{ x: 0, y: 0 }}
@@ -177,7 +168,6 @@ export default function RecuperarSenhaScreen() {
                 alignItems: "center",
               }}
             >
-
               <Text
                 style={{
                   color: "#fff",
@@ -189,18 +179,12 @@ export default function RecuperarSenhaScreen() {
               >
                 Enviar recuperação
               </Text>
-
             </LinearGradient>
-
           </TouchableOpacity>
 
           {/* VOLTAR */}
 
-          <TouchableOpacity
-            onPress={() => router.back()}
-            activeOpacity={0.8}
-          >
-
+          <TouchableOpacity onPress={() => router.back()} activeOpacity={0.8}>
             <Text
               style={{
                 textAlign: "center",
@@ -214,13 +198,9 @@ export default function RecuperarSenhaScreen() {
             >
               Voltar
             </Text>
-
           </TouchableOpacity>
-
         </View>
-
       </ScrollView>
-
     </LinearGradient>
   );
 }

@@ -1,7 +1,15 @@
 import { useEffect, useState, useCallback } from "react";
 import {
-  View, Text, TextInput, TouchableOpacity, ScrollView,
-  Image, ActivityIndicator, Alert, ActionSheetIOS, Platform,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  ActivityIndicator,
+  Alert,
+  ActionSheetIOS,
+  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -10,20 +18,34 @@ import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { logout } from "../../services/authService";
 import {
-  getPerfil, atualizarPerfil, uploadFoto, buscarCep,
+  getPerfil,
+  atualizarPerfil,
+  uploadFoto,
+  buscarCep,
   type ClientePerfil,
 } from "../../services/perfilService";
 
 // ─── CONSTANTES ──────────────────────────────────────────────────────────────
 
 const PREFERENCIAS_OPCOES = [
-  "Bolos", "Cupcakes", "Brigadeiros", "Tortas",
-  "Churros", "Mousses", "Docinhos", "Brownies",
+  "Bolos",
+  "Cupcakes",
+  "Brigadeiros",
+  "Tortas",
+  "Churros",
+  "Mousses",
+  "Docinhos",
+  "Brownies",
 ];
 
 const RESTRICOES_OPCOES = [
-  "Sem Glúten", "Sem Lactose", "Vegano", "Diabético",
-  "Sem Açúcar", "Sem Ovos", "Sem Nozes",
+  "Sem Glúten",
+  "Sem Lactose",
+  "Vegano",
+  "Diabético",
+  "Sem Açúcar",
+  "Sem Ovos",
+  "Sem Nozes",
 ];
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -75,7 +97,10 @@ function displayParaIso(display: string): string {
   return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
 }
 
-function preencherCampos(data: ClientePerfil, setters: ReturnType<typeof criarSetters>) {
+function preencherCampos(
+  data: ClientePerfil,
+  setters: ReturnType<typeof criarSetters>,
+) {
   setters.setNome(data.nome ?? "");
   setters.setApelido(data.apelido ?? "");
   setters.setDataNascimento(isoParaDisplay(data.dataNascimento));
@@ -113,7 +138,9 @@ type Setters = {
 };
 
 // Dummy só para inferir o tipo — nunca chamado
-function criarSetters(): Setters { return {} as Setters; }
+function criarSetters(): Setters {
+  return {} as Setters;
+}
 
 // ─── ESTILOS ─────────────────────────────────────────────────────────────────
 
@@ -173,9 +200,21 @@ export default function PerfilScreen() {
   const [restricoes, setRestricoes] = useState<string[]>([]);
 
   const setters: Setters = {
-    setNome, setApelido, setDataNascimento, setEmail, setTelefone,
-    setCep, setLogradouro, setNumero, setComplemento, setBairro,
-    setCidade, setEstado, setFotoPerfil, setPreferencias, setRestricoes,
+    setNome,
+    setApelido,
+    setDataNascimento,
+    setEmail,
+    setTelefone,
+    setCep,
+    setLogradouro,
+    setNumero,
+    setComplemento,
+    setBairro,
+    setCidade,
+    setEstado,
+    setFotoPerfil,
+    setPreferencias,
+    setRestricoes,
   };
 
   // ── Carregamento ─────────────────────────────────────────────────────────
@@ -217,18 +256,26 @@ export default function PerfilScreen() {
           setPerfil(cached);
           preencherCampos(cached, setters);
         }
-      } catch { /* sem dados disponíveis */ }
+      } catch {
+        /* sem dados disponíveis */
+      }
     } finally {
       setLoading(false);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { carregarPerfil(); }, [carregarPerfil]);
+  useEffect(() => {
+    carregarPerfil();
+  }, [carregarPerfil]);
 
   function parseLista(v: any): string[] {
     if (!v) return [];
     if (Array.isArray(v)) return v;
-    try { return JSON.parse(v); } catch { return []; }
+    try {
+      return JSON.parse(v);
+    } catch {
+      return [];
+    }
   }
 
   // ── CEP auto-fill ────────────────────────────────────────────────────────
@@ -252,8 +299,14 @@ export default function PerfilScreen() {
   function abrirOpcoesFoto() {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
-        { options: ["Cancelar", "Tirar foto", "Escolher da galeria"], cancelButtonIndex: 0 },
-        (i) => { if (i === 1) tirarFoto(); else if (i === 2) escolherGaleria(); }
+        {
+          options: ["Cancelar", "Tirar foto", "Escolher da galeria"],
+          cancelButtonIndex: 0,
+        },
+        (i) => {
+          if (i === 1) tirarFoto();
+          else if (i === 2) escolherGaleria();
+        },
       );
     } else {
       Alert.alert("Foto de perfil", "Escolha uma opção", [
@@ -267,32 +320,50 @@ export default function PerfilScreen() {
   async function tirarFoto() {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permissão necessária", "Permita o acesso à câmera nas configurações.");
+      Alert.alert(
+        "Permissão necessária",
+        "Permita o acesso à câmera nas configurações.",
+      );
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true, aspect: [1, 1], quality: 0.75,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.75,
     });
-    if (!result.canceled && result.assets[0]) setFotoPerfil(result.assets[0].uri);
+    if (!result.canceled && result.assets[0])
+      setFotoPerfil(result.assets[0].uri);
   }
 
   async function escolherGaleria() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permissão necessária", "Permita o acesso à galeria nas configurações.");
+      Alert.alert(
+        "Permissão necessária",
+        "Permita o acesso à galeria nas configurações.",
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true, aspect: [1, 1], quality: 0.75,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.75,
     });
-    if (!result.canceled && result.assets[0]) setFotoPerfil(result.assets[0].uri);
+    if (!result.canceled && result.assets[0])
+      setFotoPerfil(result.assets[0].uri);
   }
 
   // ── Toggle chips ─────────────────────────────────────────────────────────
 
-  function toggleItem(lista: string[], item: string, setLista: (v: string[]) => void) {
-    setLista(lista.includes(item) ? lista.filter((i) => i !== item) : [...lista, item]);
+  function toggleItem(
+    lista: string[],
+    item: string,
+    setLista: (v: string[]) => void,
+  ) {
+    setLista(
+      lista.includes(item) ? lista.filter((i) => i !== item) : [...lista, item],
+    );
   }
 
   // ── Salvar ────────────────────────────────────────────────────────────────
@@ -307,11 +378,11 @@ export default function PerfilScreen() {
       let fotoUrl: string | undefined = fotoPerfil ?? undefined;
 
       // Upload de foto apenas quando for URI local (nova foto selecionada)
-      const isLocalUri = fotoPerfil && (
-        fotoPerfil.startsWith("file://") ||
-        fotoPerfil.startsWith("content://") ||
-        fotoPerfil.startsWith("/")
-      );
+      const isLocalUri =
+        fotoPerfil &&
+        (fotoPerfil.startsWith("file://") ||
+          fotoPerfil.startsWith("content://") ||
+          fotoPerfil.startsWith("/"));
       if (isLocalUri) {
         try {
           fotoUrl = await uploadFoto(fotoPerfil!);
@@ -319,7 +390,7 @@ export default function PerfilScreen() {
           // Upload falhou mas não bloqueia salvar os outros dados
           Alert.alert(
             "Atenção",
-            `Não foi possível enviar a foto: ${uploadErr.message ?? "Erro desconhecido"}.\nOs outros dados serão salvos normalmente.`
+            `Não foi possível enviar a foto: ${uploadErr.message ?? "Erro desconhecido"}.\nOs outros dados serão salvos normalmente.`,
           );
           fotoUrl = perfil?.fotoPerfil ?? undefined; // mantém a foto anterior
         }
@@ -328,7 +399,9 @@ export default function PerfilScreen() {
       const payload = {
         nome: nome.trim(),
         apelido: apelido.trim() || undefined,
-        dataNascimento: dataNascimento ? displayParaIso(dataNascimento) : undefined,
+        dataNascimento: dataNascimento
+          ? displayParaIso(dataNascimento)
+          : undefined,
         email: email.trim(),
         telefone: telefone.replace(/\D/g, "") || undefined,
         cep: cep.replace(/\D/g, "") || undefined,
@@ -347,9 +420,15 @@ export default function PerfilScreen() {
       await AsyncStorage.setItem("user", JSON.stringify(atualizado));
       setPerfil(atualizado);
       setFotoPerfil(atualizado.fotoPerfil ?? null);
-      Alert.alert("💖 Perfil atualizado!", "Suas informações foram salvas com sucesso.");
+      Alert.alert(
+        "💖 Perfil atualizado!",
+        "Suas informações foram salvas com sucesso.",
+      );
     } catch (e: any) {
-      Alert.alert("Erro ao salvar", e.message ?? "Não foi possível salvar o perfil.");
+      Alert.alert(
+        "Erro ao salvar",
+        e.message ?? "Não foi possível salvar o perfil.",
+      );
     } finally {
       setSaving(false);
     }
@@ -361,7 +440,9 @@ export default function PerfilScreen() {
     Alert.alert("Sair da conta", "Tem certeza que deseja sair?", [
       { text: "Cancelar", style: "cancel" },
       {
-        text: "Sair", style: "destructive", onPress: async () => {
+        text: "Sair",
+        style: "destructive",
+        onPress: async () => {
           await logout();
           router.replace("/(auth)/login");
         },
@@ -373,16 +454,35 @@ export default function PerfilScreen() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff7fc" }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#fff7fc",
+        }}
+      >
         <ActivityIndicator size="large" color="#a855f7" />
-        <Text style={{ color: "#a855f7", marginTop: 12, fontSize: 14 }}>Carregando perfil...</Text>
+        <Text style={{ color: "#a855f7", marginTop: 12, fontSize: 14 }}>
+          Carregando perfil...
+        </Text>
       </View>
     );
   }
 
-  const fotoSource = fotoPerfil
-    ? { uri: fotoPerfil }
-    : require("../../assets/images/logo.png");
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL;
+
+  const fotoSource =
+    fotoPerfil && fotoPerfil.trim() !== ""
+      ? {
+          uri:
+            fotoPerfil.startsWith("http") ||
+            fotoPerfil.startsWith("file://") ||
+            fotoPerfil.startsWith("content://")
+              ? fotoPerfil
+              : `${apiUrl}${fotoPerfil}`,
+        }
+      : require("../../assets/images/logo.png");
 
   // CPF com máscara para exibição
   const cpfExibicao = perfil?.cpf ? maskCpf(perfil.cpf) : "";
@@ -395,11 +495,23 @@ export default function PerfilScreen() {
         contentContainerStyle={{ paddingBottom: 120 }}
       >
         {/* ── HEADER ── */}
-        <View style={{ paddingTop: 60, paddingHorizontal: 22, marginBottom: 4 }}>
-          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <View
+          style={{ paddingTop: 60, paddingHorizontal: 22, marginBottom: 4 }}
+        >
+          <TouchableOpacity
+            onPress={() => router.back()}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <MaterialIcons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
-          <Text style={{ fontSize: 26, fontWeight: "bold", color: "#333", marginTop: 12 }}>
+          <Text
+            style={{
+              fontSize: 26,
+              fontWeight: "bold",
+              color: "#333",
+              marginTop: 12,
+            }}
+          >
             Meu Perfil
           </Text>
         </View>
@@ -410,29 +522,47 @@ export default function PerfilScreen() {
             <Image
               source={fotoSource}
               style={{
-                width: 108, height: 108, borderRadius: 54,
-                borderWidth: 3, borderColor: "#a855f7",
+                width: 108,
+                height: 108,
+                borderRadius: 54,
+                borderWidth: 3,
+                borderColor: "#a855f7",
               }}
             />
-            <View style={{
-              position: "absolute", bottom: 2, right: 2,
-              backgroundColor: "#a855f7", borderRadius: 16,
-              padding: 7, borderWidth: 2, borderColor: "#fff",
-            }}>
+            <View
+              style={{
+                position: "absolute",
+                bottom: 2,
+                right: 2,
+                backgroundColor: "#a855f7",
+                borderRadius: 16,
+                padding: 7,
+                borderWidth: 2,
+                borderColor: "#fff",
+              }}
+            >
               <MaterialIcons name="camera-alt" size={15} color="#fff" />
             </View>
           </TouchableOpacity>
 
-          <Text style={{ marginTop: 12, fontSize: 17, fontWeight: "bold", color: "#333" }}>
+          <Text
+            style={{
+              marginTop: 12,
+              fontSize: 17,
+              fontWeight: "bold",
+              color: "#333",
+            }}
+          >
             {nome || "Seu nome"}
           </Text>
           {perfil?.email ? (
-            <Text style={{ color: "#999", fontSize: 13, marginTop: 3 }}>{perfil.email}</Text>
+            <Text style={{ color: "#999", fontSize: 13, marginTop: 3 }}>
+              {perfil.email}
+            </Text>
           ) : null}
         </View>
 
         <View style={{ paddingHorizontal: 22 }}>
-
           {/* ════ DADOS PESSOAIS ════ */}
           <Text style={secaoTitulo}>👤 Dados Pessoais</Text>
 
@@ -592,25 +722,39 @@ export default function PerfilScreen() {
 
           {/* ════ PREFERÊNCIAS ════ */}
           <Text style={secaoTitulo}>🍰 Preferências</Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 24 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 10,
+              marginBottom: 24,
+            }}
+          >
             {PREFERENCIAS_OPCOES.map((item) => {
               const ativo = preferencias.includes(item);
               return (
                 <TouchableOpacity
                   key={item}
-                  onPress={() => toggleItem(preferencias, item, setPreferencias)}
+                  onPress={() =>
+                    toggleItem(preferencias, item, setPreferencias)
+                  }
                   activeOpacity={0.75}
                   style={{
-                    paddingHorizontal: 16, paddingVertical: 9,
-                    borderRadius: 22, borderWidth: 1.5,
+                    paddingHorizontal: 16,
+                    paddingVertical: 9,
+                    borderRadius: 22,
+                    borderWidth: 1.5,
                     borderColor: ativo ? "#a855f7" : "#ddb6f8",
                     backgroundColor: ativo ? "#a855f7" : "#fdf5ff",
                   }}
                 >
-                  <Text style={{
-                    color: ativo ? "#fff" : "#9333ea",
-                    fontSize: 13, fontWeight: "600",
-                  }}>
+                  <Text
+                    style={{
+                      color: ativo ? "#fff" : "#9333ea",
+                      fontSize: 13,
+                      fontWeight: "600",
+                    }}
+                  >
                     {item}
                   </Text>
                 </TouchableOpacity>
@@ -620,7 +764,14 @@ export default function PerfilScreen() {
 
           {/* ════ RESTRIÇÕES ALIMENTARES ════ */}
           <Text style={secaoTitulo}>🚫 Restrições Alimentares</Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 30 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 10,
+              marginBottom: 30,
+            }}
+          >
             {RESTRICOES_OPCOES.map((item) => {
               const ativo = restricoes.includes(item);
               return (
@@ -629,16 +780,21 @@ export default function PerfilScreen() {
                   onPress={() => toggleItem(restricoes, item, setRestricoes)}
                   activeOpacity={0.75}
                   style={{
-                    paddingHorizontal: 16, paddingVertical: 9,
-                    borderRadius: 22, borderWidth: 1.5,
+                    paddingHorizontal: 16,
+                    paddingVertical: 9,
+                    borderRadius: 22,
+                    borderWidth: 1.5,
                     borderColor: ativo ? "#ef4444" : "#fca5a5",
                     backgroundColor: ativo ? "#ef4444" : "#fff5f5",
                   }}
                 >
-                  <Text style={{
-                    color: ativo ? "#fff" : "#dc2626",
-                    fontSize: 13, fontWeight: "600",
-                  }}>
+                  <Text
+                    style={{
+                      color: ativo ? "#fff" : "#dc2626",
+                      fontSize: 13,
+                      fontWeight: "600",
+                    }}
+                  >
                     {item}
                   </Text>
                 </TouchableOpacity>
@@ -655,26 +811,37 @@ export default function PerfilScreen() {
           >
             <LinearGradient
               colors={["#ff69b4", "#a855f7"]}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
               style={{ paddingVertical: 17, alignItems: "center" }}
             >
-              {saving
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>Salvar Perfil</Text>
-              }
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text
+                  style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}
+                >
+                  Salvar Perfil
+                </Text>
+              )}
             </LinearGradient>
           </TouchableOpacity>
 
           {/* ════ LOGOUT ════ */}
           <TouchableOpacity
             onPress={handleLogout}
-            style={{ alignItems: "center", paddingVertical: 14, marginBottom: 6 }}
+            style={{
+              alignItems: "center",
+              paddingVertical: 14,
+              marginBottom: 6,
+            }}
           >
-            <Text style={{ color: "#ef4444", fontWeight: "bold", fontSize: 15 }}>
+            <Text
+              style={{ color: "#ef4444", fontWeight: "bold", fontSize: 15 }}
+            >
               Sair da conta
             </Text>
           </TouchableOpacity>
-
         </View>
       </ScrollView>
     </LinearGradient>

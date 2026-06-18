@@ -1,5 +1,7 @@
 import { View, Text, TouchableOpacity, Image, ScrollView } from "react-native";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { LinearGradient } from "expo-linear-gradient";
 
 import { MaterialIcons } from "@expo/vector-icons";
@@ -11,10 +13,24 @@ import { router } from "expo-router";
 async function requestLocationPermission() {
   const { status } = await Location.requestForegroundPermissionsAsync();
 
+  await AsyncStorage.setItem("locationPermissionAsked", "true");
+
   if (status === "granted") {
-    router.push("/login");
+    const position = await Location.getCurrentPositionAsync({});
+
+    await AsyncStorage.setItem(
+      "userLatitude",
+      String(position.coords.latitude),
+    );
+
+    await AsyncStorage.setItem(
+      "userLongitude",
+      String(position.coords.longitude),
+    );
+
+    router.replace("/login");
   } else {
-    alert("Permissão de localização negada.");
+    router.replace("/login");
   }
 }
 
@@ -284,7 +300,13 @@ export default function LocationScreen() {
 
           {/* PULAR */}
 
-          <TouchableOpacity onPress={() => router.push("/login")}>
+          <TouchableOpacity
+            onPress={async () => {
+              await AsyncStorage.setItem("locationPermissionAsked", "true");
+
+              router.replace("/login");
+            }}
+          >
             <Text
               style={{
                 marginTop: 14,

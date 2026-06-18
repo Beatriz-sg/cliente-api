@@ -1,9 +1,6 @@
-import {
-  Animated,
-  Image,
-  Text,
-  View,
-} from "react-native";
+import { Animated, Image, Text, View } from "react-native";
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -14,7 +11,6 @@ import { router } from "expo-router";
 import MaskedView from "@react-native-masked-view/masked-view";
 
 export default function SplashScreen() {
-
   const floatAnim = useRef(new Animated.Value(0)).current;
 
   const dot1 = useRef(new Animated.Value(0.3)).current;
@@ -22,13 +18,10 @@ export default function SplashScreen() {
   const dot3 = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
-
     /* LOGO FLUTUANDO */
 
     Animated.loop(
-
       Animated.sequence([
-
         Animated.timing(floatAnim, {
           toValue: -10,
           duration: 2000,
@@ -40,19 +33,14 @@ export default function SplashScreen() {
           duration: 2000,
           useNativeDriver: true,
         }),
-
       ]),
-
     ).start();
 
     /* PONTINHOS DINÂMICOS */
 
     Animated.loop(
-
       Animated.sequence([
-
         Animated.parallel([
-
           Animated.timing(dot1, {
             toValue: 1,
             duration: 300,
@@ -70,11 +58,9 @@ export default function SplashScreen() {
             duration: 300,
             useNativeDriver: true,
           }),
-
         ]),
 
         Animated.parallel([
-
           Animated.timing(dot1, {
             toValue: 0.3,
             duration: 300,
@@ -92,11 +78,9 @@ export default function SplashScreen() {
             duration: 300,
             useNativeDriver: true,
           }),
-
         ]),
 
         Animated.parallel([
-
           Animated.timing(dot1, {
             toValue: 0.3,
             duration: 300,
@@ -114,21 +98,30 @@ export default function SplashScreen() {
             duration: 300,
             useNativeDriver: true,
           }),
-
         ]),
-
       ]),
-
     ).start();
 
-    setTimeout(() => {
-      router.replace("/location");
-    }, 4000);
+    setTimeout(async () => {
+      const locationAsked = await AsyncStorage.getItem(
+        "locationPermissionAsked",
+      );
 
+      if (!locationAsked) {
+        router.replace("/location");
+      } else {
+        const token = await AsyncStorage.getItem("userToken");
+
+        if (token) {
+          router.replace("/(tabs)/home");
+        } else {
+          router.replace("/login");
+        }
+      }
+    }, 4000);
   }, []);
 
   return (
-
     <LinearGradient
       colors={["#f8eef8", "#f5e9fa", "#efe3f8"]}
       start={{ x: 0, y: 0 }}
@@ -139,7 +132,6 @@ export default function SplashScreen() {
         alignItems: "center",
       }}
     >
-
       {/* LOGO */}
 
       <Animated.View
@@ -159,7 +151,6 @@ export default function SplashScreen() {
           elevation: 8,
         }}
       >
-
         <Image
           source={require("../assets/images/logo.png")}
           style={{
@@ -171,7 +162,6 @@ export default function SplashScreen() {
             resizeMode: "cover",
           }}
         />
-
       </Animated.View>
 
       {/* NOME DOCELIVERY */}
@@ -190,13 +180,11 @@ export default function SplashScreen() {
           </Text>
         }
       >
-
         <LinearGradient
           colors={["#ff8fd1", "#ff69b4", "#a855f7"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
         >
-
           <Text
             style={{
               opacity: 0,
@@ -208,9 +196,7 @@ export default function SplashScreen() {
           >
             DoceLivery
           </Text>
-
         </LinearGradient>
-
       </MaskedView>
 
       {/* DESCRIÇÃO */}
@@ -238,7 +224,6 @@ export default function SplashScreen() {
           marginTop: 40,
         }}
       >
-
         <Animated.View
           style={{
             width: 14,
@@ -283,9 +268,7 @@ export default function SplashScreen() {
             opacity: dot3,
           }}
         />
-
       </View>
-
     </LinearGradient>
   );
 }

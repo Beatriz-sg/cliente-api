@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { Image, Text, TouchableOpacity, View, Alert } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Location from "expo-location";
-import { getUser } from "../../services/authService";
+import { getPerfil } from "../../services/perfilService";
 
 export default function Header() {
   const [address, setAddress] = useState<string | null>(null);
@@ -17,16 +17,21 @@ export default function Header() {
       setLoading(true);
 
       (async () => {
-        const user = await getUser();
+        const user = await getPerfil();
+
         if (!active) return;
+        const foto =
+          user?.fotoPerfil || user?.foto || user?.foto_perfil || null;
 
-setProfilePhoto(
-  user?.fotoPerfil ||
-  user?.foto ||
-  user?.foto_perfil ||
-  null
-);
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL;
 
+        const fotoFinal =
+          foto && !foto.startsWith("http") ? `${apiUrl}${foto}` : foto;
+
+        
+          setProfilePhoto(fotoFinal);
+
+      
         const { status } = await Location.requestForegroundPermissionsAsync();
 
         if (status === "granted") {
@@ -37,14 +42,18 @@ setProfilePhoto(
               try {
                 const [result] = await Location.reverseGeocodeAsync(loc.coords);
                 if (result && active) {
-                  const parts = [result.street, result.streetNumber].filter(Boolean);
-                  setAddress(parts.join(", ") || result.city || "Localização obtida");
+                  const parts = [result.street, result.streetNumber].filter(
+                    Boolean,
+                  );
+                  setAddress(
+                    parts.join(", ") || result.city || "Localização obtida",
+                  );
                 }
               } catch {
                 if (active) setAddress(buildAddressFromUser(user));
               }
               if (active) setLoading(false);
-            }
+            },
           );
         } else {
           if (active) {
@@ -58,7 +67,7 @@ setProfilePhoto(
         active = false;
         sub?.remove();
       };
-    }, [])
+    }, []),
   );
 
   function buildAddressFromUser(user: any): string | null {
@@ -71,12 +80,18 @@ setProfilePhoto(
     Alert.alert(
       "Defina sua localização",
       "Ative o GPS ou atualize seu endereço no perfil.",
-      [{ text: "OK" }]
+      [{ text: "OK" }],
     );
   }
 
   return (
-    <View style={{ paddingTop: 55, paddingHorizontal: 18, backgroundColor: "#fff7fc" }}>
+    <View
+      style={{
+        paddingTop: 55,
+        paddingHorizontal: 18,
+        backgroundColor: "#fff7fc",
+      }}
+    >
       <View style={{ flexDirection: "row", alignItems: "center" }}>
         {profilePhoto ? (
           <Image
@@ -96,7 +111,9 @@ setProfilePhoto(
         >
           <Text style={{ fontSize: 11, color: "#999" }}>Entrega em</Text>
           {loading ? (
-            <Text style={{ fontSize: 11, color: "#aaa" }}>Buscando localização...</Text>
+            <Text style={{ fontSize: 11, color: "#aaa" }}>
+              Buscando localização...
+            </Text>
           ) : (
             <Text
               numberOfLines={1}
