@@ -10,12 +10,15 @@ import { MaterialIcons } from "@expo/vector-icons";
 
 import { useState, useEffect } from "react";
 
+import { produtos } from "../../data/produtos";
+
 import {
   toggleLojaFavorita,
   getLojasFavoritas,
 } from "../../services/favoritosLocalService";
 
-export default function AllStores() {
+export default function AllStores(props: any) {
+  const { categoriaSelecionada, busca } = props;
   const [favoritos, setFavoritos] = useState<number[]>([]);
 
   useEffect(() => {
@@ -39,6 +42,31 @@ export default function AllStores() {
 
     setFavoritos(favoritas.map((item: any) => item.id));
   }
+
+  const lojasFiltradas = stores
+    .filter((loja) => {
+      const possuiCategoria =
+        categoriaSelecionada === "Todos" ||
+        produtos.some(
+          (produto) =>
+            produto.lojaId === loja.id &&
+            produto.categoria === categoriaSelecionada,
+        );
+
+      const textoBusca = busca?.toLowerCase() || "";
+
+      const possuiBusca =
+        textoBusca === "" ||
+        loja.name.toLowerCase().includes(textoBusca) ||
+        produtos.some(
+          (produto) =>
+            produto.lojaId === loja.id &&
+            produto.nome.toLowerCase().includes(textoBusca),
+        );
+
+      return possuiCategoria && possuiBusca;
+    })
+    .sort((a, b) => Number(b.aberta) - Number(a.aberta));
 
   return (
     <View
@@ -75,7 +103,7 @@ export default function AllStores() {
           justifyContent: "space-between",
         }}
       >
-        {stores.map((store: Store) => {
+        {lojasFiltradas.map((store: Store) => {
           const favorito = favoritos.includes(store.id);
 
           return (
@@ -93,7 +121,7 @@ export default function AllStores() {
               style={{
                 width: "48%",
 
-                backgroundColor: "#fff",
+                backgroundColor: store.aberta ? "#fff" : "#f3f4f6",
 
                 borderRadius: 18,
 
@@ -117,8 +145,8 @@ export default function AllStores() {
                   source={store.image}
                   style={{
                     width: "100%",
-
-                    height: 95,
+                    height: 100,
+                    opacity: store.aberta ? 1 : 0.4,
                   }}
                 />
 
@@ -176,16 +204,12 @@ export default function AllStores() {
 
                 <Text
                   style={{
-                    marginTop: 3,
-
-                    color: "#22c55e",
-
-                    fontSize: 10,
-
+                    color: store.aberta ? "#22c55e" : "#9ca3af",
+                    fontSize: 11,
                     fontWeight: "bold",
                   }}
                 >
-                  ● Aberta
+                  {store.aberta ? "● Aberta" : "● Fechada"}
                 </Text>
 
                 {/* FOOTER */}

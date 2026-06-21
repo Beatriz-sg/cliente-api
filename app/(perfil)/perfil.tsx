@@ -418,6 +418,7 @@ export default function PerfilScreen() {
 
       const atualizado = await atualizarPerfil(payload);
       await AsyncStorage.setItem("user", JSON.stringify(atualizado));
+      await AsyncStorage.setItem("cidadeEntrega", atualizado.cidade || "");
       setPerfil(atualizado);
       setFotoPerfil(atualizado.fotoPerfil ?? null);
       Alert.alert(

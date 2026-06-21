@@ -19,14 +19,14 @@ import { router } from "expo-router";
 import { useCart } from "../../context/CartContext";
 
 export default function CarrinhoScreen() {
-  const {
-    itens,
-    addItem,
-    removerItem,
-    aumentarQuantidade,
-    diminuirQuantidade,
-    subtotal,
-  } = useCart();
+ const {
+  itens,
+  addItem,
+  removerItem,
+  aumentarQuantidade,
+  diminuirQuantidade,
+  subtotal,
+} = useCart() as any;
 
   const [cupom, setCupom] = useState("");
 
@@ -313,7 +313,7 @@ export default function CarrinhoScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            itens.map((item) => (
+            itens.map((item: any) => (
               <View
                 key={item.id}
                 style={{
@@ -339,13 +339,14 @@ export default function CarrinhoScreen() {
                 {/* IMAGEM */}
 
                 <Image
-                  source={{
-                    uri: item.imagem,
-                  }}
+                  source={
+                    typeof item.imagem === "string"
+                      ? { uri: item.imagem }
+                      : item.imagem
+                  }
                   style={{
                     width: 90,
                     height: 90,
-
                     borderRadius: 18,
                   }}
                 />

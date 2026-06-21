@@ -21,21 +21,46 @@ import { useCart } from "../../context/CartContext";
 
 import { stores } from "../../data/stores";
 
+import BottomTabs from "../../components/home/BottomTabs";
+
+import { TextInput } from "react-native";
+
+import { Alert } from "react-native";
+
 export default function LojaScreen() {
+  const [busca, setBusca] = useState("");
+  const [mostrarBusca, setMostrarBusca] = useState(false);
   const { lojaId } = useLocalSearchParams();
   const lojaSelecionada = stores.find((item) => item.id === Number(lojaId));
-
   const produtosFiltrados = produtos.filter(
     (produto) => produto.lojaId === Number(lojaId),
   );
 
   console.log("Loja selecionada:", lojaId);
 
-  const { addItem } = useCart() as any;
+  const { addItem, itens } = useCart() as any;
 
   const [favoritos, setFavoritos] = useState<number[]>([]);
 
   const [lojaFavorita, setLojaFavorita] = useState(false);
+
+  const [categoriaSelecionada, setCategoriaSelecionada] = useState("Tudo");
+
+  const categorias = [
+    "Tudo",
+    ...new Set(produtosFiltrados.map((p) => p.categoria)),
+  ];
+
+  const produtosExibidos = produtosFiltrados.filter((produto) => {
+    const matchCategoria =
+      categoriaSelecionada === "Tudo" ||
+      produto.categoria === categoriaSelecionada;
+
+    const matchBusca =
+      busca === "" || produto.nome.toLowerCase().includes(busca.toLowerCase());
+
+    return matchCategoria && matchBusca;
+  });
 
   async function carregarLojaFavorita() {
     const lojas = await getLojasFavoritas();
@@ -80,6 +105,14 @@ export default function LojaScreen() {
   }
 
   function adicionarCarrinho(produto: any) {
+    if (!lojaSelecionada?.aberta) {
+      Alert.alert(
+        "Loja Fechada",
+        "Esta confeitaria está fechada no momento e não aceita pedidos.",
+      );
+      return;
+    }
+
     addItem(produto);
 
     router.push("/carrinho");
@@ -100,13 +133,32 @@ export default function LojaScreen() {
       >
         {/* BANNER */}
 
-        <Image
-          source={lojaSelecionada?.image}
-          style={{
-            width: "100%",
-            height: 240,
-          }}
-        />
+        <View>
+          <Image
+            source={lojaSelecionada?.image}
+            style={{
+              width: "100%",
+              height: 240,
+            }}
+          />
+
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{
+              position: "absolute",
+              top: 50,
+              left: 20,
+              backgroundColor: "rgba(255,255,255,0.9)",
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <MaterialIcons name="arrow-back" size={24} color="#a855f7" />
+          </TouchableOpacity>
+        </View>
 
         {/* CONTEÚDO */}
 
@@ -160,15 +212,26 @@ export default function LojaScreen() {
               </Text>
             </View>
 
-            <TouchableOpacity onPress={() => favoritarLoja()}>
-              <MaterialIcons
-                name={lojaFavorita ? "favorite" : "favorite-border"}
-                size={30}
-                color="#ff69b4"
-              />
-            </TouchableOpacity>
-          </View>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <TouchableOpacity onPress={() => setMostrarBusca(!mostrarBusca)}>
+                <MaterialIcons name="search" size={28} color="#a855f7" />
+              </TouchableOpacity>
 
+              <TouchableOpacity onPress={() => favoritarLoja()}>
+                <MaterialIcons
+                  name={lojaFavorita ? "favorite" : "favorite-border"}
+                  size={30}
+                  color="#ff69b4"
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
           {/* CATEGORIAS */}
 
           <ScrollView
@@ -179,40 +242,61 @@ export default function LojaScreen() {
               marginBottom: 24,
             }}
           >
-            {["Bolos", "Donuts", "Milk Shake", "Cupcakes", "Doces"].map(
-              (categoria) => (
-                <TouchableOpacity
-                  key={categoria}
-                  activeOpacity={0.8}
+            {categorias.map((categoria) => (
+              <TouchableOpacity
+                key={categoria}
+                onPress={() => setCategoriaSelecionada(categoria)}
+                style={{
+                  backgroundColor:
+                    categoriaSelecionada === categoria ? "#a855f7" : "#f9f3fb",
+
+                  paddingHorizontal: 18,
+                  paddingVertical: 10,
+                  borderRadius: 20,
+                  marginRight: 10,
+                }}
+              >
+                <Text
                   style={{
-                    backgroundColor: "#f9f3fb",
-
-                    paddingHorizontal: 18,
-                    paddingVertical: 10,
-
-                    borderRadius: 20,
-
-                    marginRight: 10,
+                    color:
+                      categoriaSelecionada === categoria ? "#fff" : "#a855f7",
+                    fontWeight: "600",
                   }}
                 >
-                  <Text
-                    style={{
-                      color: "#a855f7",
-
-                      fontWeight: "600",
-                    }}
-                  >
-                    {categoria}
-                  </Text>
-                </TouchableOpacity>
-              ),
-            )}
+                  {categoria}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </ScrollView>
 
-          {/* PRODUTOS */}
+          {mostrarBusca && (
+            <View
+              style={{
+                backgroundColor: "#f5f5f5",
+                borderRadius: 16,
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 12,
+                marginBottom: 20,
+                height: 50,
+              }}
+            >
+              <MaterialIcons name="search" size={20} color="#999" />
+
+              <TextInput
+                value={busca}
+                onChangeText={setBusca}
+                placeholder={`Buscar em ${lojaSelecionada?.name}`}
+                style={{
+                  flex: 1,
+                  marginLeft: 8,
+                }}
+              />
+            </View>
+          )}
           {/* PRODUTOS */}
 
-          {produtosFiltrados.map((produto) => {
+          {produtosExibidos.map((produto) => {
             const favorito = favoritos.includes(produto.id);
 
             return (
@@ -265,6 +349,18 @@ export default function LojaScreen() {
                   }}
                 >
                   <View>
+                    {produto.maisVendido && (
+                      <Text
+                        style={{
+                          color: "#f97316",
+                          fontSize: 9,
+                          fontWeight: "bold",
+                          marginBottom: 4,
+                        }}
+                      >
+                        🔥 MAIS PEDIDO
+                      </Text>
+                    )}
                     <Text
                       style={{
                         fontSize: 18,
@@ -274,7 +370,6 @@ export default function LojaScreen() {
                     >
                       {produto.nome}
                     </Text>
-
                     <Text
                       style={{
                         color: "#777",
@@ -324,6 +419,7 @@ export default function LojaScreen() {
           })}
         </View>
       </ScrollView>
+      <BottomTabs itens={itens} />
     </LinearGradient>
   );
 }

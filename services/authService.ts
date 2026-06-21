@@ -99,7 +99,11 @@ export async function logout() {
 }
 
 export async function getToken() {
-  return AsyncStorage.getItem("userToken");
+  const token = await AsyncStorage.getItem("userToken");
+
+  console.log("TOKEN STORAGE:", token);
+
+  return token;
 }
 
 export async function getUser() {

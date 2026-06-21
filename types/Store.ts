@@ -14,4 +14,12 @@ export interface Store {
   deliveryFee: string;
 
   featured: boolean;
+
+  aberta?: boolean;
+
+  bairro?: string;
+
+  cidade?: string;
+
+  nearby?: boolean;
 }

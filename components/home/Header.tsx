@@ -3,22 +3,28 @@ import { Image, Text, TouchableOpacity, View, Alert } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Location from "expo-location";
 import { getPerfil } from "../../services/perfilService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect } from "react";
 
-export default function Header() {
+export default function Header({ setCidadeEntrega }: any) {
   const [address, setAddress] = useState<string | null>(null);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
-      let sub: Location.LocationSubscription | null = null;
       let active = true;
 
       setLoading(true);
 
       (async () => {
-      
         const user = await getPerfil();
+
+        console.log("CIDADE DO PERFIL:", user?.cidade);
+
+        await AsyncStorage.setItem("cidadeEntrega", user?.cidade || "");
+
+        console.log("SALVOU NO STORAGE:", user?.cidade);
 
         if (!active) return;
 
@@ -31,47 +37,121 @@ export default function Header() {
 
         setProfilePhoto(fotoFinal);
 
-        const { status } = await Location.requestForegroundPermissionsAsync();
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
 
-        if (status === "granted") {
-          sub = await Location.watchPositionAsync(
-            { accuracy: Location.Accuracy.Balanced, distanceInterval: 50 },
-            async (loc) => {
-              if (!active) return;
-              try {
-                const [result] = await Location.reverseGeocodeAsync(loc.coords);
-                if (result && active) {
-                  const parts = [result.street, result.streetNumber].filter(
-                    Boolean,
-                  );
-                  setAddress(
-                    parts.join(", ") || result.city || "Localização obtida",
-                  );
-                }
-              } catch {
-                if (active) setAddress(buildAddressFromUser(user));
-              }
-              if (active) setLoading(false);
-            },
-          );
-        } else {
-          if (active) {
+          console.log("STATUS GPS:", status);
+
+          if (status === "granted") {
+            const position = await Location.getCurrentPositionAsync({});
+
+            console.log("LAT:", position.coords.latitude);
+            console.log("LNG:", position.coords.longitude);
+
+            const [result] = await Location.reverseGeocodeAsync(
+              position.coords,
+            );
+
+            console.log("RESULTADO GPS:", result);
+
+            const cidade =
+              result.city || result.subregion || result.district || "";
+
+            console.log("CIDADE GPS:", cidade);
+
+            if (cidade) {
+              await AsyncStorage.setItem("cidadeEntrega", cidade);
+
+              setCidadeEntrega(cidade);
+
+              const parts = [result.street, result.streetNumber, cidade].filter(
+                Boolean,
+              );
+
+              setAddress(parts.join(", "));
+            }
+          } else {
+            await AsyncStorage.setItem("cidadeEntrega", user?.cidade || "");
+
+            setCidadeEntrega(user?.cidade || "");
+
             setAddress(buildAddressFromUser(user));
-            setLoading(false);
           }
+        } catch (error) {
+          console.log("ERRO GPS:", error);
+
+          await AsyncStorage.setItem("cidadeEntrega", user?.cidade || "");
+
+          setCidadeEntrega(user?.cidade || "");
+
+          console.log("VOLTOU PARA PERFIL:", user?.cidade);
+
+          console.log("USANDO PERFIL:", user?.cidade);
+
+          setAddress(buildAddressFromUser(user));
         }
+
+        setLoading(false);
       })();
 
       return () => {
         active = false;
-        sub?.remove();
       };
     }, []),
   );
 
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const enabled = await Location.hasServicesEnabledAsync();
+
+        console.log("GPS ATIVO:", enabled);
+
+        const user = await getPerfil();
+
+        if (enabled) {
+          const position = await Location.getCurrentPositionAsync({});
+
+          const [result] = await Location.reverseGeocodeAsync(position.coords);
+
+          const cidade =
+            result.city || result.subregion || result.district || "";
+
+          if (cidade) {
+            await AsyncStorage.setItem("cidadeEntrega", cidade);
+
+            setCidadeEntrega(cidade);
+
+            const parts = [result.street, result.streetNumber, cidade].filter(
+              Boolean,
+            );
+
+            setAddress(parts.join(", "));
+
+            console.log("USANDO GPS:", cidade);
+          }
+        } else {
+          await AsyncStorage.setItem("cidadeEntrega", user?.cidade || "");
+
+          setCidadeEntrega(user?.cidade || "");
+
+          setAddress(buildAddressFromUser(user));
+
+          console.log("USANDO PERFIL:", user?.cidade);
+        }
+      } catch (error) {
+        console.log("ERRO MONITOR GPS:", error);
+      }
+    }, 60000); // Verifica a cada 60 segundos
+
+    return () => clearInterval(interval);
+  }, []);
+
   function buildAddressFromUser(user: any): string | null {
     if (!user) return null;
-    const parts = [user.endereco, user.bairro, user.cidade].filter(Boolean);
+
+    const parts = [user.logradouro, user.bairro, user.cidade].filter(Boolean);
+
     return parts.length > 0 ? parts.join(", ") : null;
   }
 

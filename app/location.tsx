@@ -16,22 +16,24 @@ async function requestLocationPermission() {
   await AsyncStorage.setItem("locationPermissionAsked", "true");
 
   if (status === "granted") {
-    const position = await Location.getCurrentPositionAsync({});
+    try {
+      const position = await Location.getCurrentPositionAsync({});
 
-    await AsyncStorage.setItem(
-      "userLatitude",
-      String(position.coords.latitude),
-    );
+      await AsyncStorage.setItem(
+        "userLatitude",
+        String(position.coords.latitude),
+      );
 
-    await AsyncStorage.setItem(
-      "userLongitude",
-      String(position.coords.longitude),
-    );
-
-    router.replace("/login");
-  } else {
-    router.replace("/login");
+      await AsyncStorage.setItem(
+        "userLongitude",
+        String(position.coords.longitude),
+      );
+    } catch (error) {
+      console.log("GPS desligado ou indisponível");
+    }
   }
+
+  router.replace("/login");
 }
 
 export default function LocationScreen() {
@@ -76,7 +78,7 @@ export default function LocationScreen() {
               shadowOpacity: 0.25,
               shadowRadius: 10,
 
-              elevation: 8,
+              //elevation: 8,
             }}
           />
         </View>

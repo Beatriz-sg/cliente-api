@@ -82,21 +82,29 @@ function parseListaOuArray(valor: any): string[] {
 }
 
 export async function getPerfil(): Promise<ClientePerfil> {
+  const token = await getToken();
   const headers = await authHeaders();
 
+  console.log("TOKEN:", token);
   console.log("TOKEN HEADERS:", headers);
+
+  console.log("URL PERFIL:", apiUrl("/cliente/perfil"));
 
   const res = await fetch(apiUrl("/cliente/perfil"), {
     headers,
   });
 
+  const textoErro = await res.text().catch(() => "");
+
   console.log("STATUS PERFIL:", res.status);
+  console.log("RESPOSTA PERFIL:", textoErro);
 
-  if (!res.ok) {
-    throw new Error(`Erro ao carregar perfil: ${res.status}`);
-  }
+ if (!res.ok) {
+  console.log("ERRO COMPLETO:", textoErro);
+  throw new Error(`Erro ao carregar perfil: ${res.status}`);
+}
 
-  const raw = await res.json();
+  const raw = JSON.parse(textoErro);
 
   return normalizar(raw);
 }
