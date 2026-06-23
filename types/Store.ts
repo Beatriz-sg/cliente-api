@@ -22,4 +22,8 @@ export interface Store {
   cidade?: string;
 
   nearby?: boolean;
+
+  endereco?: string;
+
+  horario?: string;
 }

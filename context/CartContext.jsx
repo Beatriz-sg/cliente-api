@@ -4,6 +4,10 @@ import React, {
   useState,
 } from "react";
 
+import { Alert } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { stores } from "../data/stores";
+
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
@@ -12,44 +16,105 @@ export function CartProvider({ children }) {
 
   // ADICIONAR ITEM
 
-  function addItem(produto) {
+  async function addItem(produto) {
 
-    const itemExiste = itens.find(
-      (item) => item.id === produto.id
-    );
+    const cidadeEntrega =
+  await AsyncStorage.getItem("cidadeEntrega");
 
-    // SE ITEM JÁ EXISTE
+const loja = stores.find(
+  (s) => s.id === produto.lojaId
+);
 
-    if (itemExiste) {
+console.log("Cidade Cliente:", cidadeEntrega);
+console.log("Cidade Loja:", loja?.cidade);
 
-      const novosItens = itens.map((item) => {
+if (
+  cidadeEntrega &&
+  loja?.cidade &&
+  loja.cidade.toLowerCase() !==
+    cidadeEntrega.toLowerCase()
+) {
 
-        if (item.id === produto.id) {
+  Alert.alert(
+    "Entrega indisponível",
+    `Esta loja não atende sua região. Entregas apenas para ${loja.cidade}.`
+  );
 
-          return {
-            ...item,
-            quantidade: item.quantidade + 1,
-          };
-        }
+  return;
+}
 
-        return item;
-      });
+  // VERIFICA SE JÁ EXISTE ITEM DE OUTRA LOJA
 
-      setItens(novosItens);
+  if (itens.length > 0) {
 
-      return;
-    }
+    const lojaCarrinho = itens[0].lojaId;
 
-    // NOVO ITEM
+ if (produto.lojaId !== lojaCarrinho) {
 
-    setItens([
-      ...itens,
+  Alert.alert(
+    "Trocar loja",
+    "Seu carrinho possui produtos de outra loja. Deseja limpar o carrinho e adicionar este produto?",
+    [
       {
-        ...produto,
-        quantidade: 1,
+        text: "Cancelar",
+        style: "cancel",
       },
-    ]);
+      {
+        text: "Trocar Loja",
+        onPress: () => {
+
+          setItens([
+            {
+              ...produto,
+              quantidade: 1,
+            },
+          ]);
+
+        },
+      },
+    ]
+  );
+
+  return;
+}
   }
+
+  const itemExiste = itens.find(
+    (item) => item.id === produto.id
+  );
+
+  // SE ITEM JÁ EXISTE
+
+  if (itemExiste) {
+
+    const novosItens = itens.map((item) => {
+
+      if (item.id === produto.id) {
+
+        return {
+          ...item,
+          quantidade: item.quantidade + 1,
+        };
+      }
+
+      return item;
+    });
+
+    setItens(novosItens);
+
+    return;
+  }
+
+  // NOVO ITEM
+
+  setItens([
+    ...itens,
+    {
+      ...produto,
+      quantidade: 1,
+    },
+  ]);
+}
 
   // REMOVER ITEM
 

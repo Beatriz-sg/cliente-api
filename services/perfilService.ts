@@ -1,5 +1,5 @@
 import { apiUrl } from "../constants/api";
-import { getToken } from "./authService";
+import { getToken, logout } from "./authService";
 
 export interface ClientePerfil {
   id: number;
@@ -101,6 +101,12 @@ export async function getPerfil(): Promise<ClientePerfil> {
 
  if (!res.ok) {
   console.log("ERRO COMPLETO:", textoErro);
+
+  if (res.status === 401 || res.status === 403) {
+    await logout();
+    throw new Error("Sua sessão expirou. Faça login novamente.");
+  }
+
   throw new Error(`Erro ao carregar perfil: ${res.status}`);
 }
 

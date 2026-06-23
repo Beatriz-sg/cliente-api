@@ -18,6 +18,8 @@ import { MaterialIcons } from "@expo/vector-icons";
 
 import { useCart } from "../../context/CartContext";
 
+import { Alert } from "react-native";
+
 export default function HomeScreen() {
   const { itens, addItem } = useCart() as any;
 
@@ -30,6 +32,12 @@ export default function HomeScreen() {
   // FILTER OFFERS
 
   const filteredOffers = produtos.filter((produto) => {
+    // MOSTRA SOMENTE PRODUTOS COM DESCONTO
+
+    if (!produto.desconto || produto.desconto <= 0) {
+      return false;
+    }
+
     const loja = stores.find((s) => s.id === produto.lojaId);
 
     const textoBusca = busca.toLowerCase();
@@ -43,15 +51,34 @@ export default function HomeScreen() {
       categoriaSelecionada === "Todos" ||
       produto.categoria === categoriaSelecionada;
 
-    return matchBusca && matchCategoria;
+    // FILTRA PELA CIDADE DO CLIENTE
+
+    const matchCidade =
+      !cidadeEntrega ||
+      loja?.cidade?.toLowerCase() === cidadeEntrega?.toLowerCase();
+
+    return matchBusca && matchCategoria && matchCidade;
   });
 
   // ADD CART
 
   function adicionarCarrinho(produto: any) {
+    const loja = stores.find((s) => s.id === produto.lojaId);
+
+    console.log("Cidade Cliente:", cidadeEntrega);
+    console.log("Cidade Loja:", loja?.cidade);
+
+    if (
+      cidadeEntrega &&
+      loja?.cidade?.toLowerCase() !== cidadeEntrega.toLowerCase()
+    ) {
+      alert("Esta loja não atende sua região.");
+
+      return;
+    }
+
     addItem(produto);
   }
-
   return (
     <LinearGradient
       colors={["#fff7fc", "#f7ecff"]}

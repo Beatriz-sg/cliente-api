@@ -52,7 +52,10 @@ export default function Header({ setCidadeEntrega }: any) {
               position.coords,
             );
 
-            console.log("RESULTADO GPS:", result);
+            if (!result) {
+              console.log("GPS não retornou endereço");
+              throw new Error("Endereço não encontrado");
+            }
 
             const cidade =
               result.city || result.subregion || result.district || "";
@@ -64,9 +67,11 @@ export default function Header({ setCidadeEntrega }: any) {
 
               setCidadeEntrega(cidade);
 
-              const parts = [result.street, result.streetNumber, cidade].filter(
-                Boolean,
-              );
+              const parts = [
+                result?.street,
+                result?.streetNumber,
+                cidade,
+              ].filter(Boolean);
 
               setAddress(parts.join(", "));
             }
@@ -113,6 +118,10 @@ export default function Header({ setCidadeEntrega }: any) {
           const position = await Location.getCurrentPositionAsync({});
 
           const [result] = await Location.reverseGeocodeAsync(position.coords);
+
+          if (!result) {
+            throw new Error("Localização não encontrada");
+          }
 
           const cidade =
             result.city || result.subregion || result.district || "";

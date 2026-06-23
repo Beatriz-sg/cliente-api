@@ -1,17 +1,25 @@
-import { View, Text, TouchableOpacity, ScrollView, Image } from "react-native";
+import {
+  Alert,
+  Image,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 import {
-  toggleProdutoFavorito,
+  getLojasFavoritas,
   getProdutosFavoritos,
   toggleLojaFavorita,
-  getLojasFavoritas,
+  toggleProdutoFavorito,
 } from "../../services/favoritosLocalService";
 
 import { LinearGradient } from "expo-linear-gradient";
 
 import { produtos } from "../../data/produtos";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { MaterialIcons } from "@expo/vector-icons";
 
@@ -23,17 +31,17 @@ import { stores } from "../../data/stores";
 
 import BottomTabs from "../../components/home/BottomTabs";
 
-import { TextInput } from "react-native";
-
-import { Alert } from "react-native";
-
 export default function LojaScreen() {
   const [busca, setBusca] = useState("");
   const [mostrarBusca, setMostrarBusca] = useState(false);
   const { lojaId } = useLocalSearchParams();
   const lojaSelecionada = stores.find((item) => item.id === Number(lojaId));
-  const produtosFiltrados = produtos.filter(
-    (produto) => produto.lojaId === Number(lojaId),
+  const todosProdutos = produtos.filter((p) => p.lojaId === Number(lojaId));
+  const produtosFiltrados = todosProdutos.filter(
+    (p) => p.categoria !== "Kits e Combos",
+  );
+  const kitsCombos = todosProdutos.filter(
+    (p) => p.categoria === "Kits e Combos",
   );
 
   console.log("Loja selecionada:", lojaId);
@@ -55,10 +63,8 @@ export default function LojaScreen() {
     const matchCategoria =
       categoriaSelecionada === "Tudo" ||
       produto.categoria === categoriaSelecionada;
-
     const matchBusca =
       busca === "" || produto.nome.toLowerCase().includes(busca.toLowerCase());
-
     return matchCategoria && matchBusca;
   });
 
@@ -199,16 +205,38 @@ export default function LojaScreen() {
                 {lojaSelecionada?.name}
               </Text>
 
+              <Text style={{ color: "#777", marginTop: 6, fontSize: 14 }}>
+                ⭐ {lojaSelecionada?.rating} • {lojaSelecionada?.deliveryTime}
+              </Text>
+
+              {lojaSelecionada?.endereco && (
+                <Text style={{ color: "#999", marginTop: 4, fontSize: 12 }}>
+                  📍 {lojaSelecionada.endereco}
+                </Text>
+              )}
+
+              {lojaSelecionada?.horario && (
+                <Text style={{ color: "#999", marginTop: 2, fontSize: 12 }}>
+                  🕐 {lojaSelecionada.horario}
+                </Text>
+              )}
+
               <Text
                 style={{
-                  color: "#777",
-
-                  marginTop: 6,
-
-                  fontSize: 14,
+                  fontSize: 12,
+                  marginTop: 4,
+                  color: lojaSelecionada?.aberta ? "#22c55e" : "#ef4444",
+                  fontWeight: "600",
                 }}
               >
-                ⭐ {lojaSelecionada?.rating} • {lojaSelecionada?.deliveryTime}
+                {lojaSelecionada?.aberta ? "● Aberta agora" : "● Fechada"}
+              </Text>
+
+              <Text style={{ color: "#999", marginTop: 4, fontSize: 12 }}>
+                {produtosFiltrados.length} produto{produtosFiltrados.length !== 1 ? "s" : ""}
+                {kitsCombos.length > 0
+                  ? ` • ${kitsCombos.length} kit${kitsCombos.length !== 1 ? "s" : ""}`
+                  : ""}
               </Text>
             </View>
 
@@ -232,6 +260,47 @@ export default function LojaScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          {/* BOTÕES PRONTA ENTREGA / AGENDAR */}
+
+          <View
+            style={{
+              flexDirection: "row",
+              gap: 10,
+              marginTop: 16,
+              marginBottom: 4,
+            }}
+          >
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                backgroundColor: "#a855f7",
+                paddingVertical: 12,
+                borderRadius: 18,
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>
+                🛒 Pronta Entrega
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                backgroundColor: "#f9f3fb",
+                paddingVertical: 12,
+                borderRadius: 18,
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: "#a855f7",
+              }}
+            >
+              <Text style={{ color: "#a855f7", fontWeight: "700", fontSize: 14 }}>
+                📅 Agendar Encomenda
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* CATEGORIAS */}
 
           <ScrollView
@@ -294,7 +363,14 @@ export default function LojaScreen() {
               />
             </View>
           )}
+
           {/* PRODUTOS */}
+
+          {produtosExibidos.length === 0 && (
+            <Text style={{ color: "#bbb", textAlign: "center", marginVertical: 20 }}>
+              Nenhum produto encontrado.
+            </Text>
+          )}
 
           {produtosExibidos.map((produto) => {
             const favorito = favoritos.includes(produto.id);
@@ -317,8 +393,8 @@ export default function LojaScreen() {
                 <Image
                   source={produto.imagem}
                   style={{
-                    width: 100,
-                    height: 100,
+                    width: 110,
+                    height: 110,
                     borderRadius: 20,
                   }}
                 />
@@ -363,7 +439,7 @@ export default function LojaScreen() {
                     )}
                     <Text
                       style={{
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: "bold",
                         color: "#333",
                       }}
@@ -373,14 +449,58 @@ export default function LojaScreen() {
                     <Text
                       style={{
                         color: "#777",
-                        marginTop: 6,
-                        lineHeight: 20,
+                        marginTop: 4,
+                        lineHeight: 18,
+                        flexShrink: 1,
                       }}
                     >
                       {produto.descricao}
                     </Text>
-                  </View>
 
+                    <View
+                      style={{
+                        marginTop: 8,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: "#22c55e",
+                          fontSize: 11,
+                          marginTop: 2,
+                        }}
+                      >
+                        🚚 Entrega: {lojaSelecionada?.deliveryFee}
+                      </Text>
+
+                      <Text
+                        style={{
+                          color: "#f97316",
+                          fontSize: 11,
+                          marginTop: 2,
+                        }}
+                      >
+                        🎁 Acima de R$ 50 frete grátis
+                      </Text>
+
+                      <Text
+                        style={{
+                          color: "#6366f1",
+                          fontSize: 11,
+                          marginTop: 2,
+                        }}
+                      >
+                        ⏱️ {lojaSelecionada?.deliveryTime}
+                      </Text>
+
+                      <Text
+                        style={{
+                          color: "#22c55e",
+                          fontSize: 11,
+                          marginTop: 2,
+                        }}
+                      ></Text>
+                    </View>
+                  </View>
                   <View
                     style={{
                       flexDirection: "row",
@@ -417,6 +537,150 @@ export default function LojaScreen() {
               </View>
             );
           })}
+
+          {/* KITS E COMBOS */}
+
+          {kitsCombos.length > 0 && (
+            <>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginTop: 8,
+                  marginBottom: 16,
+                  gap: 8,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 20,
+                    fontWeight: "bold",
+                    color: "#333",
+                    flex: 1,
+                  }}
+                >
+                  🎁 Kits e Combos
+                </Text>
+                <Text style={{ fontSize: 12, color: "#999" }}>
+                  {kitsCombos.length} item{kitsCombos.length !== 1 ? "s" : ""}
+                </Text>
+              </View>
+
+              {kitsCombos.map((produto) => {
+                const favorito = favoritos.includes(produto.id);
+                return (
+                  <View
+                    key={produto.id}
+                    style={{
+                      backgroundColor: "#fff",
+                      borderRadius: 26,
+                      marginBottom: 18,
+                      padding: 14,
+                      flexDirection: "row",
+                      shadowColor: "#c45ccf",
+                      shadowOpacity: 0.08,
+                      shadowRadius: 10,
+                      elevation: 4,
+                    }}
+                  >
+                    <Image
+                      source={produto.imagem}
+                      style={{ width: 110, height: 110, borderRadius: 20 }}
+                    />
+
+                    <TouchableOpacity
+                      onPress={() => favoritarProduto(produto)}
+                      style={{
+                        position: "absolute",
+                        top: 10,
+                        right: 10,
+                        zIndex: 99,
+                      }}
+                    >
+                      <MaterialIcons
+                        name={favorito ? "favorite" : "favorite-border"}
+                        size={24}
+                        color="#ff4d8d"
+                      />
+                    </TouchableOpacity>
+
+                    <View
+                      style={{
+                        flex: 1,
+                        marginLeft: 14,
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <View>
+                        {produto.maisVendido && (
+                          <Text
+                            style={{
+                              color: "#f97316",
+                              fontSize: 9,
+                              fontWeight: "bold",
+                              marginBottom: 4,
+                            }}
+                          >
+                            🔥 MAIS PEDIDO
+                          </Text>
+                        )}
+                        <Text
+                          style={{
+                            fontSize: 16,
+                            fontWeight: "bold",
+                            color: "#333",
+                          }}
+                        >
+                          {produto.nome}
+                        </Text>
+                        <Text
+                          style={{
+                            color: "#777",
+                            marginTop: 4,
+                            lineHeight: 18,
+                            flexShrink: 1,
+                          }}
+                        >
+                          {produto.descricao}
+                        </Text>
+                      </View>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "#ff69b4",
+                            fontSize: 20,
+                            fontWeight: "bold",
+                          }}
+                        >
+                          R$ {produto.preco.toFixed(2)}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => adicionarCarrinho(produto)}
+                          activeOpacity={0.8}
+                          style={{
+                            backgroundColor: "#a855f7",
+                            width: 42,
+                            height: 42,
+                            borderRadius: 14,
+                            justifyContent: "center",
+                            alignItems: "center",
+                          }}
+                        >
+                          <MaterialIcons name="add" size={24} color="#fff" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </>
+          )}
         </View>
       </ScrollView>
       <BottomTabs itens={itens} />

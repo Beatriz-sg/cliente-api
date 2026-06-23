@@ -18,21 +18,27 @@ import { router } from "expo-router";
 
 import { useCart } from "../../context/CartContext";
 
+import { calcularFreteGratis } from "../../services/freteService";
+
 export default function CarrinhoScreen() {
- const {
-  itens,
-  addItem,
-  removerItem,
-  aumentarQuantidade,
-  diminuirQuantidade,
-  subtotal,
-} = useCart() as any;
+  const {
+    itens,
+    addItem,
+    removerItem,
+    aumentarQuantidade,
+    diminuirQuantidade,
+    subtotal,
+  } = useCart() as any;
 
   const [cupom, setCupom] = useState("");
 
   const [desconto, setDesconto] = useState(0);
 
-  const total = subtotal - desconto;
+  const distanciaKm = 3;
+
+  const frete = calcularFreteGratis(subtotal, distanciaKm);
+
+  const total = subtotal + frete - desconto;
 
   useEffect(() => {
     if (cupom === "DOCE10" && subtotal < 100) {
@@ -42,7 +48,7 @@ export default function CarrinhoScreen() {
     if (cupom === "BOLO20" && subtotal < 150) {
       setDesconto(0);
     }
-  }, [subtotal]);
+  }, [subtotal, cupom]);
 
   const sugestoes = [
     {
@@ -776,6 +782,32 @@ export default function CarrinhoScreen() {
                 </Text>
               </View>
 
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  marginBottom: 14,
+                }}
+              >
+                <Text
+                  style={{
+                    color: "#777",
+                    fontSize: 15,
+                  }}
+                >
+                  Frete
+                </Text>
+
+                <Text
+                  style={{
+                    color: frete === 0 ? "#22c55e" : "#333",
+                    fontWeight: "600",
+                  }}
+                >
+                  {frete === 0 ? "Grátis 🎉" : `R$ ${frete.toFixed(2)}`}
+                </Text>
+              </View>
+
               {/* DESCONTO */}
               {desconto > 0 && (
                 <View
@@ -807,6 +839,19 @@ export default function CarrinhoScreen() {
                     - R$ {desconto.toFixed(2)}
                   </Text>
                 </View>
+              )}
+
+              {subtotal < 50 && (
+                <Text
+                  style={{
+                    color: "#22c55e",
+                    marginBottom: 15,
+                    fontWeight: "600",
+                  }}
+                >
+                  🎁 Faltam R$ {(50 - subtotal).toFixed(2)} para ganhar frete
+                  grátis!
+                </Text>
               )}
 
               {/* TOTAL */}

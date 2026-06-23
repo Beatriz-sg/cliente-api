@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Image } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 
 import { router } from "expo-router";
 
@@ -8,13 +8,13 @@ import { Store } from "../../types/Store";
 
 import { MaterialIcons } from "@expo/vector-icons";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { produtos } from "../../data/produtos";
 
 import {
-  toggleLojaFavorita,
   getLojasFavoritas,
+  toggleLojaFavorita,
 } from "../../services/favoritosLocalService";
 
 export default function AllStores(props: any) {
@@ -123,6 +123,8 @@ export default function AllStores(props: any) {
 
                 backgroundColor: store.aberta ? "#fff" : "#f3f4f6",
 
+                opacity: store.aberta ? 1 : 0.6,
+
                 borderRadius: 18,
 
                 marginBottom: 16,
@@ -138,6 +140,29 @@ export default function AllStores(props: any) {
                 elevation: 2,
               }}
             >
+              {!store.aberta && (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    left: 8,
+                    backgroundColor: "#6b7280",
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    borderRadius: 8,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: "#fff",
+                      fontSize: 10,
+                      fontWeight: "bold",
+                    }}
+                  >
+                    INDISPONÍVEL
+                  </Text>
+                </View>
+              )}
               {/* IMAGE */}
 
               <View>
@@ -146,7 +171,7 @@ export default function AllStores(props: any) {
                   style={{
                     width: "100%",
                     height: 100,
-                    opacity: store.aberta ? 1 : 0.4,
+                    opacity: store.aberta ? 1 : 0.35,
                   }}
                 />
 

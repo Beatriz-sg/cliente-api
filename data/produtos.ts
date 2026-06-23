@@ -1,5 +1,4 @@
 export const produtos = [
-
   // Loja 1 - Doce Mimi (PROMOÇÃO)
   {
     id: 1,
@@ -7,9 +6,11 @@ export const produtos = [
     categoria: "Bolos",
     nome: "Bolo Vulcão",
     descricao: "Chocolate cremoso",
-    preco: 29.90,
+    preco: 29.9,
     desconto: 20,
     maisVendido: true,
+    avaliacao: 4.9,
+    avaliacoes: 128,
     imagem: require("../assets/images/stores/bolo vulcao.jpg"),
   },
   {
@@ -18,7 +19,7 @@ export const produtos = [
     categoria: "Doces",
     nome: "Brigadeiro Gourmet",
     descricao: "Chocolate belga",
-    preco: 4.50,
+    preco: 4.5,
     desconto: 10,
     imagem: require("../assets/images/stores/brigadeiro1.jpg"),
   },
@@ -28,7 +29,7 @@ export const produtos = [
     categoria: "Cupcakes",
     nome: "Cupcake Chocolate",
     descricao: "Cobertura especial",
-    preco: 12.90,
+    preco: 12.9,
     imagem: require("../assets/images/stores/cupcakechocolate.jpg"),
   },
 
@@ -39,7 +40,7 @@ export const produtos = [
     categoria: "Bolos",
     nome: "Bolo de Pote Chocolate",
     descricao: "Recheio cremoso",
-    preco: 14.90,
+    preco: 14.9,
     desconto: 15,
     imagem: require("../assets/images/stores/bolodepote.jpg"),
   },
@@ -49,9 +50,11 @@ export const produtos = [
     categoria: "Bolos",
     nome: "Bolo de Pote Morango",
     descricao: "Chocolate e morango",
-    preco: 16.90,
+    preco: 16.9,
     desconto: 25,
     maisVendido: true,
+    avaliacao: 4.8,
+    avaliacoes: 95,
     imagem: require("../assets/images/stores/bolopotemorango.jpg"),
   },
   {
@@ -60,7 +63,7 @@ export const produtos = [
     categoria: "Doces",
     nome: "Brigadeiro Tradicional",
     descricao: "Receita caseira",
-    preco: 3.50,
+    preco: 3.5,
     imagem: require("../assets/images/stores/brigadeiro2.jpg"),
   },
 
@@ -71,7 +74,7 @@ export const produtos = [
     categoria: "Brownies",
     nome: "Brownie",
     descricao: "Chocolate intenso",
-    preco: 9.90,
+    preco: 9.9,
     imagem: require("../assets/images/stores/browine.jpg"),
   },
   {
@@ -80,7 +83,7 @@ export const produtos = [
     categoria: "Mousses",
     nome: "Mousse de Chocolate",
     descricao: "Sobremesa cremosa",
-    preco: 11.90,
+    preco: 11.9,
     imagem: require("../assets/images/stores/mousse de chocolate.jpg"),
   },
   {
@@ -89,7 +92,7 @@ export const produtos = [
     categoria: "Mousses",
     nome: "Mousse de Morango",
     descricao: "Leve e refrescante",
-    preco: 11.90,
+    preco: 11.9,
     imagem: require("../assets/images/stores/mousse de morango.jpg"),
   },
 
@@ -100,7 +103,7 @@ export const produtos = [
     categoria: "Cupcakes",
     nome: "Cupcake Morango",
     descricao: "Recheio especial",
-    preco: 13.90,
+    preco: 13.9,
     imagem: require("../assets/images/stores/cupcake 1.jpg"),
   },
   {
@@ -109,7 +112,7 @@ export const produtos = [
     categoria: "Tortas",
     nome: "Torta Limão",
     descricao: "Massa crocante",
-    preco: 18.90,
+    preco: 18.9,
     imagem: require("../assets/images/stores/torta_limao.jpg"),
   },
 
@@ -120,9 +123,11 @@ export const produtos = [
     categoria: "Doces",
     nome: "Doces Finos",
     descricao: "Caixa gourmet",
-    preco: 34.90,
+    preco: 34.9,
     desconto: 30,
     maisVendido: true,
+    avaliacao: 5.0,
+    avaliacoes: 214,
     imagem: require("../assets/images/stores/doces finos.jpg"),
   },
   {
@@ -131,7 +136,7 @@ export const produtos = [
     categoria: "Doces",
     nome: "Mini Churros",
     descricao: "Doce de leite",
-    preco: 15.90,
+    preco: 15.9,
     desconto: 10,
     imagem: require("../assets/images/stores/mini_churros_master.jpg"),
   },
@@ -141,7 +146,7 @@ export const produtos = [
     categoria: "Bolos",
     nome: "Petit Gateau",
     descricao: "Chocolate quente",
-    preco: 19.90,
+    preco: 19.9,
     maisVendido: true,
     imagem: require("../assets/images/stores/petgato.jpg"),
   },
@@ -153,7 +158,7 @@ export const produtos = [
     categoria: "Doces",
     nome: "Brigadeiro Especial",
     descricao: "Chocolate gourmet",
-    preco: 5.00,
+    preco: 5.0,
     imagem: require("../assets/images/stores/brigadeiro3.jpg"),
   },
   {
@@ -162,7 +167,7 @@ export const produtos = [
     categoria: "Cupcakes",
     nome: "Cupcake Chocolate",
     descricao: "Cobertura especial",
-    preco: 12.90,
+    preco: 12.9,
     imagem: require("../assets/images/stores/cupcakechocolate.jpg"),
   },
 
@@ -173,9 +178,11 @@ export const produtos = [
     categoria: "Bolos",
     nome: "Bolo Vulcão",
     descricao: "Chocolate cremoso",
-    preco: 29.90,
+    preco: 29.9,
     desconto: 15,
     maisVendido: true,
+    avaliacao: 4.9,
+    avaliacoes: 143,
     imagem: require("../assets/images/stores/bolo vulcao.jpg"),
   },
   {
@@ -184,7 +191,7 @@ export const produtos = [
     categoria: "Doces",
     nome: "Brigadeiro Gourmet",
     descricao: "Chocolate belga",
-    preco: 4.50,
+    preco: 4.5,
     desconto: 20,
     imagem: require("../assets/images/stores/brigadeiro1.jpg"),
   },
@@ -196,7 +203,7 @@ export const produtos = [
     categoria: "Bolos",
     nome: "Bolo de Pote",
     descricao: "Chocolate cremoso",
-    preco: 14.90,
+    preco: 14.9,
     imagem: require("../assets/images/stores/bolodepote.jpg"),
   },
   {
@@ -205,7 +212,7 @@ export const produtos = [
     categoria: "Bolos",
     nome: "Petit Gateau",
     descricao: "Chocolate quente",
-    preco: 19.90,
+    preco: 19.9,
     imagem: require("../assets/images/stores/petgato.jpg"),
   },
 
@@ -216,8 +223,10 @@ export const produtos = [
     categoria: "Cupcakes",
     nome: "Cupcake Chocolate",
     descricao: "Cobertura especial",
-    preco: 12.90,
+    preco: 12.9,
     maisVendido: true,
+    avaliacao: 4.8,
+    avaliacoes: 96,
     imagem: require("../assets/images/stores/cupcakechocolate.jpg"),
   },
   {
@@ -226,7 +235,7 @@ export const produtos = [
     categoria: "Cupcakes",
     nome: "Cupcake Morango",
     descricao: "Recheio especial",
-    preco: 13.90,
+    preco: 13.9,
     imagem: require("../assets/images/stores/cupcake 1.jpg"),
   },
 
@@ -237,7 +246,7 @@ export const produtos = [
     categoria: "Doces",
     nome: "Brigadeiro Gourmet",
     descricao: "Chocolate belga",
-    preco: 4.50,
+    preco: 4.5,
     desconto: 10,
     imagem: require("../assets/images/stores/brigadeiro1.jpg"),
   },
@@ -247,142 +256,189 @@ export const produtos = [
     categoria: "Doces",
     nome: "Doces Finos",
     descricao: "Caixa gourmet",
-    preco: 34.90,
+    preco: 34.9,
     desconto: 25,
     maisVendido: true,
+    avaliacao: 4.9,
+    avaliacoes: 176,
     imagem: require("../assets/images/stores/doces finos.jpg"),
   },
   // Loja 7 - Olivia Confeitaria
-{
-  id: 26,
-  lojaId: 7,
-  categoria: "Cupcakes",
-  nome: "Cupcake Red Velvet",
-  descricao: "Cobertura cremosa",
-  preco: 14.90,
-  maisVendido: true,
-  imagem: require("../assets/images/stores/cupcakechocolate.jpg"),
-},
-{
-  id: 27,
-  lojaId: 7,
-  categoria: "Doces",
-  nome: "Brigadeiro Gourmet",
-  descricao: "Chocolate belga",
-  preco: 5.50,
-  imagem: require("../assets/images/stores/brigadeiro1.jpg"),
-},
-{
-  id: 28,
-  lojaId: 7,
-  categoria: "Bolos",
-  nome: "Mini Bolo de Morango",
-  descricao: "Recheio especial",
-  preco: 24.90,
-  imagem: require("../assets/images/stores/bolopotemorango.jpg"),
-},
-// =========================
-// KITS E COMBOS
-// =========================
+  {
+    id: 26,
+    lojaId: 7,
+    categoria: "Cupcakes",
+    nome: "Cupcake Red Velvet",
+    descricao: "Cobertura cremosa",
+    preco: 14.9,
+    maisVendido: true,
+    imagem: require("../assets/images/stores/cupcakechocolate.jpg"),
+  },
+  {
+    id: 27,
+    lojaId: 7,
+    categoria: "Doces",
+    nome: "Brigadeiro Gourmet",
+    descricao: "Chocolate belga",
+    preco: 5.5,
+    imagem: require("../assets/images/stores/brigadeiro1.jpg"),
+  },
+  {
+    id: 28,
+    lojaId: 7,
+    categoria: "Bolos",
+    nome: "Mini Bolo de Morango",
+    descricao: "Recheio especial",
+    preco: 24.9,
+    imagem: require("../assets/images/stores/bolopotemorango.jpg"),
+  },
+  // =========================
+  // KITS E COMBOS
+  // =========================
 
-// Doce Mimi
-{
-  id: 35,
-  lojaId: 1,
-  categoria: "Kits e Combos",
-  nome: "Kit Festa Mini",
-  descricao: "10 brigadeiros + 4 cupcakes",
-  preco: 49.90,
-  maisVendido: true,
-  imagem: require("../assets/images/stores/kit-doces.png"),
-},
+  // Doce Mimi
+  {
+    id: 35,
+    lojaId: 1,
+    categoria: "Kits e Combos",
+    nome: "Kit Festa Mini",
+    descricao: "10 brigadeiros + 4 cupcakes",
+    preco: 49.9,
+    maisVendido: true,
+    imagem: require("../assets/images/stores/kit-doces.png"),
+  },
 
-// Doce Paladar
-{
-  id: 36,
-  lojaId: 2,
-  categoria: "Kits e Combos",
-  nome: "Combo Chocolate Lovers",
-  descricao: "Brownie + brigadeiros gourmet",
-  preco: 39.90,
-  imagem: require("../assets/images/stores/combo-amores.png"),
-},
+  // Doce Paladar
+  {
+    id: 36,
+    lojaId: 2,
+    categoria: "Kits e Combos",
+    nome: "Combo Chocolate Lovers",
+    descricao: "Brownie + brigadeiros gourmet",
+    preco: 39.9,
+    imagem: require("../assets/images/stores/combo-amores.png"),
+  },
 
-// Fábrica dos Doces
-{
-  id: 37,
-  lojaId: 5,
-  categoria: "Kits e Combos",
-  nome: "Caixa Gourmet Premium",
-  descricao: "20 doces finos variados",
-  preco: 89.90,
-  maisVendido: true,
-  imagem: require("../assets/images/stores/caixa-gourmet.png"),
-},
+  // Fábrica dos Doces
+  {
+    id: 37,
+    lojaId: 5,
+    categoria: "Kits e Combos",
+    nome: "Caixa Gourmet Premium",
+    descricao: "20 doces finos variados",
+    preco: 89.9,
+    maisVendido: true,
+    imagem: require("../assets/images/stores/caixa-gourmet.png"),
+  },
 
-// Olivia Confeitaria
-{
-  id: 38,
-  lojaId: 7,
-  categoria: "Kits e Combos",
-  nome: "Kit Cupcakes Especiais",
-  descricao: "6 cupcakes recheados",
-  preco: 59.90,
-  imagem: require("../assets/images/stores/kit-cupcakes-olivia.png"),
-},
+  // Olivia Confeitaria
+  {
+    id: 38,
+    lojaId: 7,
+    categoria: "Kits e Combos",
+    nome: "Kit Cupcakes Especiais",
+    descricao: "6 cupcakes recheados",
+    preco: 59.9,
+    imagem: require("../assets/images/stores/kit-cupcakes-olivia.png"),
+  },
 
-// Delícias da Ju
-{
-  id: 39,
-  lojaId: 9,
-  categoria: "Kits e Combos",
-  nome: "Combo Família",
-  descricao: "Mini bolo + 12 brigadeiros",
-  preco: 69.90,
-  imagem: require("../assets/images/stores/combo-família.png"),
-},
+  // Delícias da Ju
+  {
+    id: 39,
+    lojaId: 9,
+    categoria: "Kits e Combos",
+    nome: "Combo Família",
+    descricao: "Mini bolo + 12 brigadeiros",
+    preco: 69.9,
+    imagem: require("../assets/images/stores/combo-família.png"),
+  },
 
-// Casa dos Cupcakes
-{
-  id: 40,
-  lojaId: 11,
-  categoria: "Kits e Combos",
-  nome: "Kit Festa Cupcake",
-  descricao: "12 cupcakes decorados",
-  preco: 49.90,
-  maisVendido: true,
-  imagem: require("../assets/images/stores/kit-cupcake.png"),
-},
+  // Casa dos Cupcakes
+  {
+    id: 40,
+    lojaId: 11,
+    categoria: "Kits e Combos",
+    nome: "Kit Festa Cupcake",
+    descricao: "12 cupcakes decorados",
+    preco: 49.9,
+    maisVendido: true,
+    imagem: require("../assets/images/stores/kit-cupcake.png"),
+  },
 
-{
-  id: 41,
-  lojaId: 11,
-  categoria: "Kits e Combos",
-  nome: "Combo Casal",
-  descricao: "2 cupcakes + 4 brigadeiros",
-  preco: 29.90,
-  imagem: require("../assets/images/stores/combo-casal.png"),
-},
+  {
+    id: 41,
+    lojaId: 11,
+    categoria: "Kits e Combos",
+    nome: "Combo Casal",
+    descricao: "2 cupcakes + 4 brigadeiros",
+    preco: 29.9,
+    avaliacao: 4.9,
+    avaliacoes: 87,
+    imagem: require("../assets/images/stores/combo-casal.png"),
+  },
 
-// Reino do Chocolate
-{
-  id: 42,
-  lojaId: 12,
-  categoria: "Kits e Combos",
-  nome: "Caixa Premium Chocolate",
-  descricao: "24 doces finos sortidos",
-  preco: 99.90,
-  maisVendido: true,
-  imagem: require("../assets/images/stores/kit-caixa-premium.png"),
-},
+  // Reino do Chocolate
+  {
+    id: 42,
+    lojaId: 12,
+    categoria: "Kits e Combos",
+    nome: "Caixa Premium Chocolate",
+    descricao: "24 doces finos sortidos",
+    preco: 99.9,
+    maisVendido: true,
+    imagem: require("../assets/images/stores/kit-caixa-premium.png"),
+  },
 
-{
-  id: 43,
-  lojaId: 12,
-  categoria: "Kits e Combos",
-  nome: "Kit Presente",
-  descricao: "12 chocolates artesanais",
-  preco: 54.90,
-  imagem: require("../assets/images/stores/kit-presente-perfeito.png"),
-},
+  {
+    id: 43,
+    lojaId: 12,
+    categoria: "Kits e Combos",
+    nome: "Kit Presente",
+    descricao: "12 chocolates artesanais",
+    preco: 54.9,
+    imagem: require("../assets/images/stores/kit-presente-perfeito.png"),
+  },
+  // Loja 6 - Maier Confeitaria
+
+  {
+    id: 44,
+    lojaId: 6,
+    categoria: "Bolos",
+    nome: "Bolo Red Velvet",
+    descricao: "Massa macia com recheio especial",
+    preco: 34.9,
+    maisVendido: true,
+    imagem: require("../assets/images/stores/bolo vulcao.jpg"),
+  },
+
+  {
+    id: 45,
+    lojaId: 6,
+    categoria: "Doces",
+    nome: "Brigadeiro Gourmet",
+    descricao: "Chocolate nobre",
+    preco: 5.5,
+    imagem: require("../assets/images/stores/brigadeiro1.jpg"),
+  },
+
+  {
+    id: 46,
+    lojaId: 6,
+    categoria: "Cupcakes",
+    nome: "Cupcake Premium",
+    descricao: "Cobertura especial",
+    preco: 13.9,
+    imagem: require("../assets/images/stores/cupcakechocolate.jpg"),
+  },
+
+  {
+    id: 47,
+    lojaId: 6,
+    categoria: "Kits e Combos",
+    nome: "Kit Maier Especial",
+    descricao: "6 cupcakes + 6 brigadeiros",
+    preco: 59.9,
+    maisVendido: true,
+    imagem: require("../assets/images/stores/kit-cupcake.png"),
+  },
 ];

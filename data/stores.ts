@@ -11,7 +11,11 @@ export const stores = [
     nearby: true,
     bairro: "Belval",
     cidade: "Barueri",
-     aberta: true,
+    latitude: -23.5057,
+    longitude: -46.8790,
+    aberta: true,
+    endereco: "Rua das Flores, 123 - Belval, Barueri",
+    horario: "Seg-Sáb: 8h às 20h | Dom: 9h às 17h",
   },
 
   {
@@ -26,7 +30,11 @@ export const stores = [
     nearby: true,
     bairro: "Centro",
     cidade: "Itapevi",
-     aberta: true,
+    latitude: -23.5489,
+    longitude: -46.9348,
+    aberta: true,
+    endereco: "Av. Central, 456 - Centro, Itapevi",
+    horario: "Seg-Sex: 9h às 19h | Sáb: 9h às 18h",
   },
 
   {
@@ -41,7 +49,11 @@ export const stores = [
     nearby: true,
     bairro: "Jardim Paulista",
     cidade: "Barueri",
-     aberta: true,
+    latitude: -23.5057,
+    longitude: -46.8790,
+    aberta: true,
+    endereco: "Rua Jardim Paulista, 78 - Jd. Paulista, Barueri",
+    horario: "Ter-Dom: 9h às 19h",
   },
 
   {
@@ -56,7 +68,11 @@ export const stores = [
     nearby: true,
     bairro: "Alphaville",
     cidade: "Barueri",
-     aberta: true,
+    latitude: -23.5057,
+    longitude: -46.8790,
+    aberta: true,
+    endereco: "Al. das Acácias, 200 - Alphaville, Barueri",
+    horario: "Seg-Sáb: 8h às 21h | Dom: 10h às 18h",
   },
 
   {
@@ -71,7 +87,11 @@ export const stores = [
     nearby: true,
     bairro: "Centro",
     cidade: "Osasco",
-     aberta: true,
+    latitude: -23.5329,
+    longitude: -46.7917,
+    aberta: true,
+    endereco: "Rua Dom Pedro II, 310 - Centro, Osasco",
+    horario: "Seg-Sáb: 8h às 20h",
   },
 
   {
@@ -86,7 +106,11 @@ export const stores = [
     nearby: false,
     bairro: "Centro",
     cidade: "Jandira",
-     aberta: true,
+    latitude: -23.5275,
+    longitude: -46.9022,
+    aberta: true,
+    endereco: "Rua XV de Novembro, 55 - Centro, Jandira",
+    horario: "Ter-Dom: 9h às 18h",
   },
 
   {
@@ -101,7 +125,11 @@ export const stores = [
     nearby: false,
     bairro: "Tamboré",
     cidade: "Barueri",
+    latitude: -23.5057,
+    longitude: -46.8790,
     aberta: false,
+    endereco: "Av. Tamboré, 1000 - Tamboré, Barueri",
+    horario: "Seg-Sáb: 10h às 20h",
   },
 
   {
@@ -116,7 +144,11 @@ export const stores = [
     nearby: false,
     bairro: "Centro",
     cidade: "Jandira",
+    latitude: -23.5275,
+    longitude: -46.9022,
     aberta: false,
+    endereco: "Rua Barão de Jundiaí, 22 - Centro, Jandira",
+    horario: "Seg-Sex: 9h às 18h",
   },
 
   {
@@ -131,7 +163,11 @@ export const stores = [
     nearby: false,
     bairro: "Vila Santa Rita",
     cidade: "Itapevi",
-     aberta: true,
+    latitude: -23.5489,
+    longitude: -46.9348,
+    aberta: true,
+    endereco: "Rua Santa Rita, 88 - Vila Santa Rita, Itapevi",
+    horario: "Ter-Dom: 8h às 19h",
   },
 
   {
@@ -146,7 +182,11 @@ export const stores = [
     nearby: false,
     bairro: "Jardim Rosemary",
     cidade: "Itapevi",
-     aberta: true,
+    latitude: -23.5489,
+    longitude: -46.9348,
+    aberta: true,
+    endereco: "Av. Rosemary, 145 - Jd. Rosemary, Itapevi",
+    horario: "Seg-Sáb: 8h às 18h",
   },
 
   {
@@ -161,7 +201,11 @@ export const stores = [
     nearby: true,
     bairro: "Belval",
     cidade: "Barueri",
-     aberta: true,
+    latitude: -23.5057,
+    longitude: -46.8790,
+    aberta: true,
+    endereco: "Rua Flamboyant, 300 - Belval, Barueri",
+    horario: "Seg-Dom: 9h às 21h",
   },
 
   {
@@ -176,6 +220,10 @@ export const stores = [
     nearby: true,
     bairro: "Centro",
     cidade: "Osasco",
-     aberta: true,
+    latitude: -23.5329,
+    longitude: -46.7917,
+    aberta: true,
+    endereco: "Av. dos Autonomistas, 500 - Centro, Osasco",
+    horario: "Seg-Dom: 8h às 22h",
   },
 ];
