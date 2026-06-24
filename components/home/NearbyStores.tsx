@@ -1,176 +1,108 @@
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
-
-import { stores as storesData } from "../../data/stores";
-
-import { useState } from "react";
-
+import { useState, useEffect } from "react";
 import { MaterialIcons } from "@expo/vector-icons";
-
-import { produtos } from "../../data/produtos";
-
 import { router } from "expo-router";
+import { getStores, type LojaAPI } from "../../services/storeService";
+import {
+  getLojasFavoritas,
+  toggleLojaFavorita,
+} from "../../services/favoritosLocalService";
+import { imagemUrl } from "../../constants/api";
 
 export default function NearbyStores(props: any) {
-  const { cidadeEntrega } = props;
-  const { categoriaSelecionada } = props;
-  const [stores] = useState(storesData);
-
+  const { cidadeEntrega, categoriaSelecionada } = props;
+  const [stores, setStores] = useState<LojaAPI[]>([]);
   const [favoritos, setFavoritos] = useState<number[]>([]);
 
-  function toggleFavorito(id: number) {
-    if (favoritos.includes(id)) {
-      setFavoritos(favoritos.filter((item) => item !== id));
-    } else {
-      setFavoritos([...favoritos, id]);
-    }
+  useEffect(() => {
+    getStores().then(setStores);
+    carregarFavoritos();
+  }, []);
+
+  async function carregarFavoritos() {
+    const favs = await getLojasFavoritas();
+    setFavoritos(favs.map((item: any) => item.id));
+  }
+
+  async function toggleFavorito(store: LojaAPI) {
+    await toggleLojaFavorita({
+      id: store.id,
+      nomeFantasia: store.name ?? store.nome,
+      cidade: store.cidade ?? "",
+      fotoUrl: imagemUrl(store.loja?.fotoUrl) ?? null,
+    });
+    carregarFavoritos();
   }
 
   const lojasFiltradas = stores.filter((loja) => {
     const mesmaCidade =
       !cidadeEntrega ||
-      loja.cidade?.toLowerCase() === cidadeEntrega.toLowerCase();
-
-    const mesmaCategoria =
-      categoriaSelecionada === "Todos" ||
-      produtos.some(
-        (produto) =>
-          produto.lojaId === loja.id &&
-          produto.categoria === categoriaSelecionada,
-      );
-
-    return mesmaCidade && mesmaCategoria;
+      (loja.cidade ?? "").toLowerCase() === cidadeEntrega.toLowerCase();
+    return mesmaCidade;
   });
 
-  console.log("CIDADE ENTREGA:", cidadeEntrega);
-  console.log("LOJAS FILTRADAS:", lojasFiltradas);
-
-  console.log(
-    lojasFiltradas.map((l) => ({
-      nome: l.name,
-      aberta: l.aberta,
-    })),
-  );
-
   return (
-    <View
-      style={{
-        marginTop: 30,
-      }}
-    >
-      {/* TITLE */}
-
-      <View
-        style={{
-          paddingHorizontal: 18,
-
-          marginBottom: 16,
-        }}
-      >
-        <Text
-          style={{
-            fontSize: 20,
-
-            fontWeight: "bold",
-
-            color: "#333",
-          }}
-        >
+    <View style={{ marginTop: 30 }}>
+      <View style={{ paddingHorizontal: 18, marginBottom: 16 }}>
+        <Text style={{ fontSize: 20, fontWeight: "bold", color: "#333" }}>
           📍 Confeitarias Próximas
         </Text>
       </View>
 
-      {/* LIST */}
-
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingLeft: 18,
-        }}
+        contentContainerStyle={{ paddingLeft: 18 }}
       >
-        {lojasFiltradas.map((store: any) => {
+        {lojasFiltradas.map((store) => {
           const favorito = favoritos.includes(store.id);
+          const fotoUri = imagemUrl(store.loja?.fotoUrl);
 
           return (
             <TouchableOpacity
-  key={store.id}
-  activeOpacity={0.9}
-  onPress={() =>
-    router.push({
-      pathname: "/loja",
-      params: {
-        lojaId: store.id,
-      },
-    })
-  }
-  style={{
+              key={store.id}
+              activeOpacity={0.9}
+              onPress={() => router.push({ pathname: "/loja", params: { lojaId: store.id } })}
+              style={{
                 width: 210,
-
-                backgroundColor: store.aberta ? "#fff" : "#e5e7eb",
-
+                backgroundColor: "#fff",
                 borderRadius: 18,
-
                 marginRight: 14,
-
                 overflow: "hidden",
-
-                opacity: 1,
-
                 shadowColor: "#000",
-
                 shadowOpacity: 0.04,
-
                 shadowRadius: 6,
-
                 elevation: 2,
               }}
             >
-              {/* IMAGE */}
-
               <View>
-                <Image
-                  source={store.image}
-                  style={{
-                    width: "100%",
-                    height: 110,
-                    opacity: store.aberta ? 1 : 0.02,
-                  }}
-                />
-
-                {!store.aberta && (
+                {fotoUri ? (
+                  <Image source={{ uri: fotoUri }} style={{ width: "100%", height: 110 }} />
+                ) : (
                   <View
                     style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: "rgba(180,180,180,0.90)",
+                      width: "100%",
+                      height: 110,
+                      backgroundColor: "#f3e8ff",
+                      justifyContent: "center",
+                      alignItems: "center",
                     }}
-                  />
+                  >
+                    <MaterialIcons name="store" size={40} color="#a855f7" />
+                  </View>
                 )}
 
-                {/* FAVORITE */}
-
                 <TouchableOpacity
-                  onPress={() => toggleFavorito(store.id)}
+                  onPress={() => toggleFavorito(store)}
                   style={{
                     position: "absolute",
-
                     top: 10,
-
                     right: 10,
-
                     backgroundColor: "rgba(255,255,255,0.95)",
-
                     width: 34,
-
                     height: 34,
-
                     borderRadius: 999,
-
                     justifyContent: "center",
-
                     alignItems: "center",
                   }}
                 >
@@ -182,36 +114,13 @@ export default function NearbyStores(props: any) {
                 </TouchableOpacity>
               </View>
 
-              {/* INFO */}
-
-              <View
-                style={{
-                  padding: 12,
-                }}
-              >
-                <Text
-                  numberOfLines={1}
-                  style={{
-                    fontSize: 15,
-
-                    fontWeight: "bold",
-
-                    color: store.aberta ? "#333" : "#8b8b8b",
-                  }}
-                >
-                  {store.name}
+              <View style={{ padding: 12 }}>
+                <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: "bold", color: "#333" }}>
+                  {store.name ?? store.nome}
                 </Text>
-                <Text
-                  style={{
-                    marginTop: 4,
-                    color: store.aberta ? "#22c55e" : "#6b7280",
-                    fontSize: 11,
-                    fontWeight: "bold",
-                  }}
-                >
-                  {store.aberta ? "● Aberta" : "● Fechada"}
+                <Text style={{ marginTop: 4, color: "#22c55e", fontSize: 11, fontWeight: "bold" }}>
+                  ● Aberta
                 </Text>
-
                 <View
                   style={{
                     flexDirection: "row",
@@ -220,37 +129,13 @@ export default function NearbyStores(props: any) {
                     marginTop: 10,
                   }}
                 >
-                  <Text
-                    style={{
-                      color: store.aberta ? "#ffb800" : "#9ca3af",
-                      fontSize: 12,
-                      fontWeight: "bold",
-                    }}
-                  >
-                    ⭐ {store.rating}
+                  <Text style={{ color: "#ffb800", fontSize: 12, fontWeight: "bold" }}>
+                    ⭐ {store.rating ?? "—"}
                   </Text>
-
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                    }}
-                  >
-                    <MaterialIcons
-                      name="directions-car"
-                      size={15}
-                      color={store.aberta ? "#7e22ce" : "#9ca3af"}
-                    />
-
-                    <Text
-                      style={{
-                        marginLeft: 4,
-                        color: store.aberta ? "#7e22ce" : "#9ca3af",
-                        fontSize: 10,
-                        fontWeight: "600",
-                      }}
-                    >
-                      {store.deliveryTime}
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <MaterialIcons name="directions-car" size={15} color="#7e22ce" />
+                    <Text style={{ marginLeft: 4, color: "#7e22ce", fontSize: 10, fontWeight: "600" }}>
+                      {store.deliveryTime ?? "—"}
                     </Text>
                   </View>
                 </View>

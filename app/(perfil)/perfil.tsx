@@ -15,7 +15,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { logout } from "../../services/authService";
 import {
   getPerfil,
@@ -222,43 +221,14 @@ export default function PerfilScreen() {
   const carregarPerfil = useCallback(async () => {
     setLoading(true);
     try {
-      // 1ª tentativa: busca do backend (dados mais completos e atualizados)
       const data = await getPerfil();
       setPerfil(data);
       preencherCampos(data, setters);
-    } catch {
-      // 2ª tentativa: usa cache do AsyncStorage (pode estar sem cpf/dataNascimento
-      // se foi salvo por versão antiga — normalizar() resolve isso)
-      try {
-        const raw = await AsyncStorage.getItem("user");
-        if (raw) {
-          const u = JSON.parse(raw) as any;
-          // Normalização manual do cache para cobrir campos renomeados
-          const cached: ClientePerfil = {
-            id: u.id,
-            nome: u.nome ?? "",
-            apelido: u.apelido ?? undefined,
-            cpf: u.cpf ?? u.documento ?? "",
-            dataNascimento: u.dataNascimento ?? u.data_nascimento ?? undefined,
-            email: u.email ?? "",
-            telefone: u.telefone ?? undefined,
-            cep: u.cep ?? undefined,
-            logradouro: u.logradouro ?? u.endereco ?? undefined,
-            numero: u.numero ?? undefined,
-            complemento: u.complemento ?? undefined,
-            bairro: u.bairro ?? undefined,
-            cidade: u.cidade ?? undefined,
-            estado: u.estado ?? u.uf ?? undefined,
-            fotoPerfil: u.fotoPerfil ?? u.foto ?? u.foto_perfil ?? undefined,
-            preferencias: parseLista(u.preferencias),
-            restricoes: parseLista(u.restricoes),
-          };
-          setPerfil(cached);
-          preencherCampos(cached, setters);
-        }
-      } catch {
-        /* sem dados disponíveis */
-      }
+    } catch (e: any) {
+      Alert.alert(
+        "Erro ao carregar perfil",
+        e.message ?? "Verifique sua conexão e tente novamente.",
+      );
     } finally {
       setLoading(false);
     }
@@ -267,16 +237,6 @@ export default function PerfilScreen() {
   useEffect(() => {
     carregarPerfil();
   }, [carregarPerfil]);
-
-  function parseLista(v: any): string[] {
-    if (!v) return [];
-    if (Array.isArray(v)) return v;
-    try {
-      return JSON.parse(v);
-    } catch {
-      return [];
-    }
-  }
 
   // ── CEP auto-fill ────────────────────────────────────────────────────────
 
@@ -417,10 +377,8 @@ export default function PerfilScreen() {
       };
 
       const atualizado = await atualizarPerfil(payload);
-      await AsyncStorage.setItem("user", JSON.stringify(atualizado));
-      await AsyncStorage.setItem("cidadeEntrega", atualizado.cidade || "");
       setPerfil(atualizado);
-      setFotoPerfil(atualizado.fotoPerfil ?? null);
+      setFotoPerfil(atualizado.fotoPerfil ?? fotoUrl ?? null);
       Alert.alert(
         "💖 Perfil atualizado!",
         "Suas informações foram salvas com sucesso.",
@@ -471,18 +429,11 @@ export default function PerfilScreen() {
     );
   }
 
-  const apiUrl = process.env.EXPO_PUBLIC_API_URL;
-
+  // URI local (câmera/galeria antes de salvar) → usa direto
+  // URL completa retornada pela API após upload → usa direto
   const fotoSource =
     fotoPerfil && fotoPerfil.trim() !== ""
-      ? {
-          uri:
-            fotoPerfil.startsWith("http") ||
-            fotoPerfil.startsWith("file://") ||
-            fotoPerfil.startsWith("content://")
-              ? fotoPerfil
-              : `${apiUrl}${fotoPerfil}`,
-        }
+      ? { uri: fotoPerfil }
       : require("../../assets/images/logo.png");
 
   // CPF com máscara para exibição

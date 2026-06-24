@@ -70,7 +70,9 @@ export async function login(data: LoginPayload) {
   const user = json?.user || json;
 
   // Permite apenas clientes no app cliente
-  if (user?.role !== "ROLE_CLIENTE") {
+  // A API retorna user.tipo = "CLIENTE" (não "ROLE_CLIENTE")
+  const tipo = user?.tipo ?? user?.role ?? "";
+  if (tipo !== "CLIENTE" && tipo !== "ROLE_CLIENTE") {
     throw new Error("Este aplicativo é exclusivo para clientes.");
   }
 

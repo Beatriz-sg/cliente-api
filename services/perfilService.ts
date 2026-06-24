@@ -1,4 +1,5 @@
-import { apiUrl } from "../constants/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { apiUrl, imagemUrl } from "../constants/api";
 import { getToken, logout } from "./authService";
 
 export interface ClientePerfil {
@@ -16,7 +17,7 @@ export interface ClientePerfil {
   bairro?: string;
   cidade?: string;
   estado?: string;
-  fotoPerfil?: string;
+  fotoPerfil?: string;   // nome do arquivo em /uploads/ ou URI local
   preferencias?: string[];
   restricoes?: string[];
 }
@@ -44,128 +45,119 @@ async function authHeaders(): Promise<Record<string, string>> {
   return { Authorization: `Bearer ${token}` };
 }
 
-/**
- * Normaliza resposta do backend — cobre diferenças de nomes de campo
- * entre entidade Java (endereco/uf) e interface frontend (logradouro/estado)
- */
 function normalizar(raw: any): ClientePerfil {
   return {
-    id: raw.id,
-    nome: raw.nome ?? "",
-    apelido: raw.apelido ?? undefined,
-    cpf: raw.cpf ?? raw.documento ?? "",
+    id:             raw.id,
+    nome:           raw.nome ?? "",
+    apelido:        raw.apelido ?? undefined,
+    cpf:            raw.cpf ?? raw.documento ?? "",
     dataNascimento: raw.dataNascimento ?? raw.data_nascimento ?? undefined,
-    email: raw.email ?? "",
-    telefone: raw.telefone ?? undefined,
-    cep: raw.cep ?? undefined,
-    // DTO Java retorna "logradouro" (mapeado de "endereco" na entidade)
-    logradouro: raw.logradouro ?? raw.endereco ?? undefined,
-    numero: raw.numero ?? undefined,
-    complemento: raw.complemento ?? undefined,
-    bairro: raw.bairro ?? undefined,
-    cidade: raw.cidade ?? undefined,
-    // DTO Java retorna "estado" (mapeado de "uf" na entidade)
-    estado: raw.estado ?? raw.uf ?? undefined,
-    fotoPerfil: raw.fotoPerfil ?? raw.foto ?? raw.foto_perfil ?? undefined,
-    preferencias: parseListaOuArray(raw.preferencias),
-    restricoes: parseListaOuArray(raw.restricoes),
+    email:          raw.email ?? "",
+    telefone:       raw.telefone ?? undefined,
+    cep:            raw.cep ?? undefined,
+    logradouro:     raw.logradouro ?? raw.endereco ?? undefined,
+    numero:         raw.numero ?? undefined,
+    complemento:    raw.complemento ?? undefined,
+    bairro:         raw.bairro ?? undefined,
+    cidade:         raw.cidade ?? undefined,
+    estado:         raw.estado ?? raw.uf ?? undefined,
+    fotoPerfil:     raw.fotoPerfil ? imagemUrl(raw.fotoPerfil) ?? undefined : undefined,
+    preferencias:   Array.isArray(raw.preferencias) ? raw.preferencias : [],
+    restricoes:     Array.isArray(raw.restricoes)   ? raw.restricoes   : [],
   };
 }
 
-function parseListaOuArray(valor: any): string[] {
-  if (!valor) return [];
-  if (Array.isArray(valor)) return valor;
-  if (typeof valor === "string") {
-    try { return JSON.parse(valor); } catch { return []; }
-  }
-  return [];
-}
-
 export async function getPerfil(): Promise<ClientePerfil> {
-  const token = await getToken();
   const headers = await authHeaders();
+  const res = await fetch(apiUrl("/cliente/perfil"), { headers });
+  const texto = await res.text().catch(() => "");
 
-  console.log("TOKEN:", token);
-  console.log("TOKEN HEADERS:", headers);
-
-  console.log("URL PERFIL:", apiUrl("/cliente/perfil"));
-
-  const res = await fetch(apiUrl("/cliente/perfil"), {
-    headers,
-  });
-
-  const textoErro = await res.text().catch(() => "");
-
-  console.log("STATUS PERFIL:", res.status);
-  console.log("RESPOSTA PERFIL:", textoErro);
-
- if (!res.ok) {
-  console.log("ERRO COMPLETO:", textoErro);
-
-  if (res.status === 401 || res.status === 403) {
-    await logout();
-    throw new Error("Sua sessão expirou. Faça login novamente.");
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      await logout();
+      throw new Error("Sua sessão expirou. Faça login novamente.");
+    }
+    throw new Error(`Erro ao carregar perfil: ${res.status}`);
   }
 
-  throw new Error(`Erro ao carregar perfil: ${res.status}`);
-}
-
-  const raw = JSON.parse(textoErro);
-
-  return normalizar(raw);
+  return normalizar(JSON.parse(texto));
 }
 
 export async function atualizarPerfil(data: AtualizarPerfilPayload): Promise<ClientePerfil> {
   const headers = await authHeaders();
+
+  const payload: Record<string, any> = {
+    nome:           data.nome,
+    apelido:        data.apelido,
+    email:          data.email,
+    telefone:       data.telefone,
+    dataNascimento: data.dataNascimento,
+    cep:            data.cep,
+    logradouro:     data.logradouro,
+    numero:         data.numero,
+    complemento:    data.complemento,
+    bairro:         data.bairro,
+    cidade:         data.cidade,
+    estado:         data.estado,
+    preferencias:   data.preferencias ?? [],
+    restricoes:     data.restricoes   ?? [],
+  };
+
   const res = await fetch(apiUrl("/cliente/perfil"), {
     method: "PUT",
     headers: { ...headers, "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
+
   if (!res.ok) {
     const text = await res.text();
     let msg = "Erro ao salvar perfil.";
     try { msg = JSON.parse(text)?.message ?? msg; } catch { /* empty */ }
     throw new Error(msg);
   }
+
   const raw = await res.json();
-  return normalizar(raw);
+  const perfil = normalizar(raw);
+
+  // Atualiza cache local do usuário para o Header/Context
+  await AsyncStorage.setItem("user", JSON.stringify(perfil));
+  if (perfil.cidade) await AsyncStorage.setItem("cidadeEntrega", perfil.cidade);
+
+  return perfil;
 }
 
 /**
- * Faz upload da foto de perfil.
- * Retorna a URL pública da imagem salva no servidor.
+ * Faz upload da foto de perfil para POST /api/cliente/foto.
+ * A API salva em C:/docelivery-storage/ e retorna o nome do arquivo.
+ * Retorna a URL pública completa para exibição imediata.
  */
 export async function uploadFoto(uri: string): Promise<string> {
   const headers = await authHeaders();
   const formData = new FormData();
 
-  // React Native exige o formato { uri, name, type } como objeto dentro do FormData
-  const arquivo = {
+  formData.append("foto", {
     uri,
     name: `perfil_${Date.now()}.jpg`,
     type: "image/jpeg",
-  } as unknown as Blob;
-
-  formData.append("foto", arquivo);
+  } as unknown as Blob);
 
   const res = await fetch(apiUrl("/cliente/foto"), {
     method: "POST",
-    headers, // NÃO adicionar Content-Type manualmente — fetch define o boundary automaticamente
+    headers, // sem Content-Type manual — fetch define o boundary do multipart
     body: formData,
   });
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    let msg = "Erro ao enviar foto. Verifique sua conexão.";
-    try { msg = JSON.parse(text)?.message ?? msg; } catch { /* empty */ }
+    let msg = "Erro ao enviar foto.";
+    try { msg = JSON.parse(text)?.error ?? msg; } catch { /* empty */ }
     throw new Error(msg);
   }
 
   const data = await res.json();
-  // Aceita diferentes campos de retorno do backend
-  const url = data.fotoUrl ?? data.fotoPerfil ?? data.foto ?? data.url ?? uri;
-  return url;
+  // imagemUrl() monta a URL completa igual ao normalizar() — consistência garantida
+  const nomeArquivo: string = data.fotoPerfil ?? "";
+  return nomeArquivo ? (imagemUrl(nomeArquivo) ?? uri) : uri;
 }
 
 export async function buscarCep(cep: string): Promise<{
@@ -182,9 +174,9 @@ export async function buscarCep(cep: string): Promise<{
     if (data.erro) return null;
     return {
       logradouro: data.logradouro ?? "",
-      bairro: data.bairro ?? "",
-      cidade: data.localidade ?? "",
-      estado: data.uf ?? "",
+      bairro:     data.bairro     ?? "",
+      cidade:     data.localidade ?? "",
+      estado:     data.uf         ?? "",
     };
   } catch {
     return null;

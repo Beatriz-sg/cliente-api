@@ -28,14 +28,9 @@ export default function Header({ setCidadeEntrega }: any) {
 
         if (!active) return;
 
-        const foto = user?.fotoPerfil || null;
-
-        const apiUrl = process.env.EXPO_PUBLIC_API_URL;
-
-        const fotoFinal =
-          foto && !foto.startsWith("http") ? `${apiUrl}${foto}` : foto;
-
-        setProfilePhoto(fotoFinal);
+        const foto = user?.fotoPerfil ?? null;
+        // fotoPerfil já vem como URL completa do normalizar() no perfilService
+        setProfilePhoto(foto);
 
         try {
           const { status } = await Location.requestForegroundPermissionsAsync();

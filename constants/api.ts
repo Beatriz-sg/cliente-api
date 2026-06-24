@@ -29,3 +29,10 @@ export const apiUrl = (path: string) => {
 };
 
 export default getBaseUrl();
+
+/** Monta URL completa de imagem de produto retornada pela API */
+export const imagemUrl = (nomeArquivo?: string | null): string | null => {
+  if (!nomeArquivo) return null;
+  if (nomeArquivo.startsWith("http")) return nomeArquivo;
+  return `${getBaseUrl()}/uploads/${nomeArquivo}`;
+};
