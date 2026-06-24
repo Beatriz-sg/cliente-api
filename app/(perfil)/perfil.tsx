@@ -38,14 +38,56 @@ const PREFERENCIAS_OPCOES = [
 ];
 
 const RESTRICOES_OPCOES = [
-  "Sem Glúten",
+  "Sem Gl\u00fcten",
   "Sem Lactose",
   "Vegano",
-  "Diabético",
-  "Sem Açúcar",
+  "Diab\u00e9tico",
+  "Sem A\u00e7\u00facar",
   "Sem Ovos",
   "Sem Nozes",
 ];
+
+/**
+ * Mapa bidirecional entre as chaves que a API armazena (CSV camelCase da Web)
+ * e os labels que o Mobile exibe nos chips.
+ * A API persiste o que recebe — o Mobile precisa falar a mesma l\u00edngua.
+ */
+const API_PARA_LABEL: Record<string, string> = {
+  // prefer\u00eancias
+  bolos:        "Bolos",
+  cupcakes:     "Cupcakes",
+  brigadeiros:  "Brigadeiros",
+  tortas:       "Tortas",
+  churros:      "Churros",
+  mousses:      "Mousses",
+  docinhos:     "Docinhos",
+  brownies:     "Brownies",
+  // restri\u00e7\u00f5es
+  semGluten:    "Sem Gl\u00fcten",
+  semLactose:   "Sem Lactose",
+  vegano:       "Vegano",
+  diabetico:    "Diab\u00e9tico",
+  semAcucar:    "Sem A\u00e7\u00facar",
+  semOvos:      "Sem Ovos",
+  semNozes:     "Sem Nozes",
+};
+
+const LABEL_PARA_API: Record<string, string> = Object.fromEntries(
+  Object.entries(API_PARA_LABEL).map(([k, v]) => [v, k]),
+);
+
+/** Converte array de chaves da API → array de labels dos chips */
+function apiParaLabels(arr: any[]): string[] {
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .map((v) => API_PARA_LABEL[String(v).trim()] ?? null)
+    .filter((v): v is string => v !== null);
+}
+
+/** Converte array de labels dos chips → array de chaves para enviar \u00e0 API */
+function labelsParaApi(labels: string[]): string[] {
+  return labels.map((l) => LABEL_PARA_API[l] ?? l);
+}
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -94,51 +136,6 @@ function displayParaIso(display: string): string {
   const [d, m, y] = display.split("/");
   if (!d || !m || !y || y.length < 4) return display;
   return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-}
-
-function preencherCampos(
-  data: ClientePerfil,
-  setters: ReturnType<typeof criarSetters>,
-) {
-  setters.setNome(data.nome ?? "");
-  setters.setApelido(data.apelido ?? "");
-  setters.setDataNascimento(isoParaDisplay(data.dataNascimento));
-  setters.setEmail(data.email ?? "");
-  setters.setTelefone(maskPhone(data.telefone ?? ""));
-  setters.setCep(maskCep(data.cep ?? ""));
-  setters.setLogradouro(data.logradouro ?? "");
-  setters.setNumero(data.numero ?? "");
-  setters.setComplemento(data.complemento ?? "");
-  setters.setBairro(data.bairro ?? "");
-  setters.setCidade(data.cidade ?? "");
-  setters.setEstado(data.estado ?? "");
-  setters.setFotoPerfil(data.fotoPerfil ?? null);
-  setters.setPreferencias(data.preferencias ?? []);
-  setters.setRestricoes(data.restricoes ?? []);
-}
-
-// Tipo auxiliar usado apenas dentro do componente
-type Setters = {
-  setNome: (v: string) => void;
-  setApelido: (v: string) => void;
-  setDataNascimento: (v: string) => void;
-  setEmail: (v: string) => void;
-  setTelefone: (v: string) => void;
-  setCep: (v: string) => void;
-  setLogradouro: (v: string) => void;
-  setNumero: (v: string) => void;
-  setComplemento: (v: string) => void;
-  setBairro: (v: string) => void;
-  setCidade: (v: string) => void;
-  setEstado: (v: string) => void;
-  setFotoPerfil: (v: string | null) => void;
-  setPreferencias: (v: string[]) => void;
-  setRestricoes: (v: string[]) => void;
-};
-
-// Dummy só para inferir o tipo — nunca chamado
-function criarSetters(): Setters {
-  return {} as Setters;
 }
 
 // ─── ESTILOS ─────────────────────────────────────────────────────────────────
@@ -198,32 +195,32 @@ export default function PerfilScreen() {
   const [preferencias, setPreferencias] = useState<string[]>([]);
   const [restricoes, setRestricoes] = useState<string[]>([]);
 
-  const setters: Setters = {
-    setNome,
-    setApelido,
-    setDataNascimento,
-    setEmail,
-    setTelefone,
-    setCep,
-    setLogradouro,
-    setNumero,
-    setComplemento,
-    setBairro,
-    setCidade,
-    setEstado,
-    setFotoPerfil,
-    setPreferencias,
-    setRestricoes,
-  };
-
   // ── Carregamento ─────────────────────────────────────────────────────────
 
   const carregarPerfil = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getPerfil();
+      const prefs = apiParaLabels(data.preferencias ?? []);
+      const rests = apiParaLabels(data.restricoes ?? []);
+      console.log("[perfil] preferencias da API:", JSON.stringify(data.preferencias), "->", prefs);
+      console.log("[perfil] restricoes da API:",   JSON.stringify(data.restricoes),   "->", rests);
       setPerfil(data);
-      preencherCampos(data, setters);
+      setNome(data.nome ?? "");
+      setApelido(data.apelido ?? "");
+      setDataNascimento(isoParaDisplay(data.dataNascimento));
+      setEmail(data.email ?? "");
+      setTelefone(maskPhone(data.telefone ?? ""));
+      setCep(maskCep(data.cep ?? ""));
+      setLogradouro(data.logradouro ?? "");
+      setNumero(data.numero ?? "");
+      setComplemento(data.complemento ?? "");
+      setBairro(data.bairro ?? "");
+      setCidade(data.cidade ?? "");
+      setEstado(data.estado ?? "");
+      setFotoPerfil(data.fotoPerfil ?? null);
+      setPreferencias(prefs);
+      setRestricoes(rests);
     } catch (e: any) {
       Alert.alert(
         "Erro ao carregar perfil",
@@ -372,12 +369,14 @@ export default function PerfilScreen() {
         cidade: cidade.trim() || undefined,
         estado: estado.trim() || undefined,
         fotoPerfil: fotoUrl,
-        preferencias,
-        restricoes,
+        preferencias: labelsParaApi(preferencias),
+        restricoes:   labelsParaApi(restricoes),
       };
 
       const atualizado = await atualizarPerfil(payload);
       setPerfil(atualizado);
+      setPreferencias(apiParaLabels(atualizado.preferencias ?? []));
+      setRestricoes(apiParaLabels(atualizado.restricoes ?? []));
       setFotoPerfil(atualizado.fotoPerfil ?? fotoUrl ?? null);
       Alert.alert(
         "💖 Perfil atualizado!",

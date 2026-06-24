@@ -42,10 +42,43 @@ export interface AtualizarPerfilPayload {
 
 async function authHeaders(): Promise<Record<string, string>> {
   const token = await getToken();
-  return { Authorization: `Bearer ${token}` };
+  return {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/json; charset=utf-8",
+  };
+}
+
+/** Normaliza string para NFC e trim — garante que acentos de fontes diferentes comparem igual */
+function norm(s: string): string {
+  return s.normalize("NFC").trim();
+}
+
+function toStringArray(value: any): string[] {
+  if (Array.isArray(value)) return value.filter((v) => typeof v === "string").map(norm);
+  if (typeof value === "string" && value.trim() !== "") {
+    const trimmed = value.trim();
+    if (trimmed.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return parsed.filter((v) => typeof v === "string").map(norm);
+      } catch { /* fallthrough to CSV */ }
+    }
+    return trimmed.split(",").map(norm).filter(Boolean);
+  }
+  return [];
 }
 
 function normalizar(raw: any): ClientePerfil {
+  const preferencias = toStringArray(raw.preferencias);
+  const restricoes   = toStringArray(raw.restricoes);
+
+  if (__DEV__) {
+    console.log("[perfilService] raw.preferencias:", JSON.stringify(raw.preferencias));
+    console.log("[perfilService] raw.restricoes:",   JSON.stringify(raw.restricoes));
+    console.log("[perfilService] normalizado preferencias:", preferencias);
+    console.log("[perfilService] normalizado restricoes:",   restricoes);
+  }
+
   return {
     id:             raw.id,
     nome:           raw.nome ?? "",
@@ -62,8 +95,8 @@ function normalizar(raw: any): ClientePerfil {
     cidade:         raw.cidade ?? undefined,
     estado:         raw.estado ?? raw.uf ?? undefined,
     fotoPerfil:     raw.fotoPerfil ? imagemUrl(raw.fotoPerfil) ?? undefined : undefined,
-    preferencias:   Array.isArray(raw.preferencias) ? raw.preferencias : [],
-    restricoes:     Array.isArray(raw.restricoes)   ? raw.restricoes   : [],
+    preferencias,
+    restricoes,
   };
 }
 
@@ -71,6 +104,11 @@ export async function getPerfil(): Promise<ClientePerfil> {
   const headers = await authHeaders();
   const res = await fetch(apiUrl("/cliente/perfil"), { headers });
   const texto = await res.text().catch(() => "");
+
+  if (__DEV__) {
+    console.log("[perfilService] GET /cliente/perfil status:", res.status);
+    console.log("[perfilService] response body:", texto);
+  }
 
   if (!res.ok) {
     if (res.status === 401 || res.status === 403) {
