@@ -1,20 +1,21 @@
+import { MaterialIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert, Image, KeyboardAvoidingView, Modal, Platform,
-  ScrollView, Text, TextInput, TouchableOpacity, View, ActivityIndicator,
+  ScrollView, Text, TextInput, TouchableOpacity, View,
 } from "react-native";
+import BottomTabs from "../../components/home/BottomTabs";
+import { imagemUrl } from "../../constants/api";
+import { useCart } from "../../context/CartContext";
 import {
   getLojasFavoritas, getProdutosFavoritos,
   toggleLojaFavorita, toggleProdutoFavorito,
 } from "../../services/favoritosLocalService";
-import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useState } from "react";
-import { MaterialIcons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useCart } from "../../context/CartContext";
-import BottomTabs from "../../components/home/BottomTabs";
-import { getStores, getStoreProdutos, getStoreKits } from "../../services/storeService";
-import { imagemUrl } from "../../constants/api";
+import { getStoreKits, getStoreProdutos, getStores } from "../../services/storeService";
 
 const AGENDAMENTO_KEY = "agendamento_pendente";
 const MODO_ENTREGA_KEY = "modo_entrega";
@@ -23,13 +24,33 @@ const MODO_ENTREGA_KEY = "modo_entrega";
 
 type ModoEntrega = "entrega" | "retirada";
 
+// ── helpers de disponibilidade ────────────────────────────────────────────────
+
+/**
+ * Retorna true quando o produto deve ser OCULTADO da listagem.
+ * Regra: disponivel === false → ocultar.
+ */
+function deveOcultar(item: any): boolean {
+  return item.disponivel === false || item.ativo === false;
+}
+
+/**
+ * Retorna true quando disponivel=true mas estoque=0 (sem estoque).
+ * Nesses casos o produto permanece visível com badge e botão "Avise-me".
+ */
+function estaSemEstoque(item: any): boolean {
+  const estoque = item.estoque ?? item.quantidadeEstoque ?? null;
+  return estoque !== null && Number(estoque) === 0;
+}
+
 // ── ProdutoCard ───────────────────────────────────────────────────────────────
 
-function ProdutoCard({ produto, favorito, onFavoritar, onAdicionar, onDetalhes, onEncomendar }: any) {
+function ProdutoCard({ produto, favorito, onFavoritar, onAdicionar, onAvisarMe, onDetalhes, onEncomendar }: any) {
   const uri = imagemUrl(produto.imagemUrl ?? produto.imagem);
   const preco = Number(produto.preco ?? 0);
   const precoOriginal = produto.precoOriginal ? Number(produto.precoOriginal) : null;
   const temDesconto = precoOriginal && precoOriginal > preco;
+  const semEstoque = estaSemEstoque(produto);
 
   return (
     <View style={{
@@ -40,18 +61,37 @@ function ProdutoCard({ produto, favorito, onFavoritar, onAdicionar, onDetalhes, 
       {/* Imagem quadrada fixa */}
       <View style={{ width: 86, height: 86 }}>
         {uri ? (
-          <Image source={{ uri }} style={{ width: 86, height: 86 }} resizeMode="cover" />
+          <Image
+            source={{ uri }}
+            style={{ width: 86, height: 86, resizeMode: "cover", opacity: semEstoque ? 0.55 : 1 }}
+          />
         ) : (
-          <View style={{ width: 86, height: 86, backgroundColor: "#f3e8ff",
-            justifyContent: "center", alignItems: "center" }}>
+          <View style={{
+            width: 86, height: 86, backgroundColor: "#f3e8ff",
+            justifyContent: "center", alignItems: "center"
+          }}>
             <MaterialIcons name="cake" size={28} color="#d8b4fe" />
+          </View>
+        )}
+        {/* Badge "Sem estoque" sobreposto à imagem */}
+        {semEstoque && (
+          <View style={{
+            position: "absolute", bottom: 0, left: 0, right: 0,
+            backgroundColor: "rgba(107,114,128,0.82)",
+            paddingVertical: 3, alignItems: "center",
+          }}>
+            <Text style={{ color: "#fff", fontSize: 9, fontWeight: "700", letterSpacing: 0.3 }}>
+              SEM ESTOQUE
+            </Text>
           </View>
         )}
       </View>
 
       {/* Coluna direita */}
-      <View style={{ flex: 1, paddingLeft: 10, paddingRight: 28,
-        paddingTop: 9, paddingBottom: 8, justifyContent: "space-between" }}>
+      <View style={{
+        flex: 1, paddingLeft: 10, paddingRight: 28,
+        paddingTop: 9, paddingBottom: 8, justifyContent: "space-between"
+      }}>
 
         {/* Nome + descrição */}
         <View>
@@ -67,7 +107,7 @@ function ProdutoCard({ produto, favorito, onFavoritar, onAdicionar, onDetalhes, 
 
         {/* Preço inline */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 }}>
-          <Text style={{ fontSize: 14, fontWeight: "800", color: "#ec4899" }}>
+          <Text style={{ fontSize: 14, fontWeight: "800", color: semEstoque ? "#9ca3af" : "#ec4899" }}>
             R$ {preco.toFixed(2)}
           </Text>
           {temDesconto && (
@@ -81,24 +121,46 @@ function ProdutoCard({ produto, favorito, onFavoritar, onAdicionar, onDetalhes, 
         <View style={{ flexDirection: "row", gap: 5, marginTop: 6 }}>
           <TouchableOpacity
             onPress={onDetalhes} activeOpacity={0.8}
-            style={{ flex: 1, flexDirection: "row", alignItems: "center",
+            style={{
+              flex: 1, flexDirection: "row", alignItems: "center",
               justifyContent: "center", gap: 3,
               borderWidth: 1.5, borderColor: "#a855f7", borderRadius: 7,
-              paddingVertical: 5, backgroundColor: "#faf5ff" }}
+              paddingVertical: 5, backgroundColor: "#faf5ff"
+            }}
           >
             <MaterialIcons name="info-outline" size={11} color="#a855f7" />
             <Text style={{ fontSize: 11, fontWeight: "700", color: "#a855f7" }}>Detalhes</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={onAdicionar} activeOpacity={0.8}
-            style={{ flex: 1, flexDirection: "row", alignItems: "center",
-              justifyContent: "center", gap: 3,
-              backgroundColor: "#a855f7", borderRadius: 7,
-              paddingVertical: 5 }}
-          >
-            <MaterialIcons name="add" size={11} color="#fff" />
-            <Text style={{ fontSize: 11, fontWeight: "700", color: "#fff" }}>Adicionar</Text>
-          </TouchableOpacity>
+
+          {semEstoque ? (
+            // Produto visível mas sem estoque → botão "Avise-me"
+            <TouchableOpacity
+              onPress={onAvisarMe} activeOpacity={0.8}
+              style={{
+                flex: 1, flexDirection: "row", alignItems: "center",
+                justifyContent: "center", gap: 3,
+                borderWidth: 1.5, borderColor: "#6b7280", borderRadius: 7,
+                paddingVertical: 5, backgroundColor: "#f9fafb"
+              }}
+            >
+              <MaterialIcons name="notifications-none" size={11} color="#6b7280" />
+              <Text style={{ fontSize: 10, fontWeight: "700", color: "#6b7280" }}>Avise-me</Text>
+            </TouchableOpacity>
+          ) : (
+            // Produto disponível com estoque → botão "Adicionar"
+            <TouchableOpacity
+              onPress={onAdicionar} activeOpacity={0.8}
+              style={{
+                flex: 1, flexDirection: "row", alignItems: "center",
+                justifyContent: "center", gap: 3,
+                backgroundColor: "#a855f7", borderRadius: 7,
+                paddingVertical: 5
+              }}
+            >
+              <MaterialIcons name="add" size={11} color="#fff" />
+              <Text style={{ fontSize: 11, fontWeight: "700", color: "#fff" }}>Adicionar</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -141,10 +203,10 @@ function ModalEncomendar({ produto, nomeLoja, lojaIdReal, visible, onClose, onCo
   visible: boolean; onClose: () => void;
   onConfirmar: (dados: { produto: any; quantidade: number; descricao: string; dataEntrega: string; observacoes: string }) => void;
 }) {
-  const [quantidade,   setQuantidade]   = useState("1");
-  const [descricao,    setDescricao]    = useState("");
-  const [dataEntrega,  setDataEntrega]  = useState("");
-  const [observacoes,  setObservacoes]  = useState("");
+  const [quantidade, setQuantidade] = useState("1");
+  const [descricao, setDescricao] = useState("");
+  const [dataEntrega, setDataEntrega] = useState("");
+  const [observacoes, setObservacoes] = useState("");
 
   // Limpa campos ao fechar
   function fechar() {
@@ -168,9 +230,9 @@ function ModalEncomendar({ produto, nomeLoja, lojaIdReal, visible, onClose, onCo
   }
 
   if (!produto) return null;
-  const uri  = imagemUrl(produto.imagemUrl ?? produto.imagem);
+  const uri = imagemUrl(produto.imagemUrl ?? produto.imagem);
   const preco = Number(produto.preco ?? 0);
-  const qtd  = Math.max(1, parseInt(quantidade) || 1);
+  const qtd = Math.max(1, parseInt(quantidade) || 1);
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={fechar}>
@@ -364,10 +426,19 @@ function ModalDetalhes({ produto, nomeLoja, visible, onClose }: {
               </Text>
               <View style={{
                 paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
-                backgroundColor: disponivel ? "#dcfce7" : "#fee2e2",
+                backgroundColor: disponivel
+                  ? (estoque !== null && Number(estoque) === 0 ? "#fef9c3" : "#dcfce7")
+                  : "#fee2e2",
               }}>
-                <Text style={{ fontSize: 11, fontWeight: "700", color: disponivel ? "#16a34a" : "#dc2626" }}>
-                  {disponivel ? "Disponível" : "Indisponível"}
+                <Text style={{
+                  fontSize: 11, fontWeight: "700",
+                  color: disponivel
+                    ? (estoque !== null && Number(estoque) === 0 ? "#a16207" : "#16a34a")
+                    : "#dc2626",
+                }}>
+                  {disponivel
+                    ? (estoque !== null && Number(estoque) === 0 ? "Sem estoque" : "Disponível")
+                    : "Indisponível"}
                 </Text>
               </View>
             </View>
@@ -426,11 +497,13 @@ function InfoChip({ icon, label, value }: { icon: any; label: string; value: str
 
 // ── KitCard ───────────────────────────────────────────────────────────────────
 
-function KitCard({ kit, favorito, onFavoritar, onAdicionar, onDetalhes, onEncomendar }: any) {
+function KitCard({ kit, favorito, onFavoritar, onAdicionar, onAvisarMe, onDetalhes, onEncomendar }: any) {
   const uri = imagemUrl(kit.imagemUrl ?? kit.imagem);
   const preco = Number(kit.preco ?? 0);
   const precoOriginal = kit.precoOriginal ? Number(kit.precoOriginal) : null;
   const temDesconto = precoOriginal && precoOriginal > preco;
+  const semEstoque = estaSemEstoque(kit);
+
   return (
     <View style={{
       backgroundColor: "#fff", borderRadius: 14, marginBottom: 8,
@@ -440,18 +513,37 @@ function KitCard({ kit, favorito, onFavoritar, onAdicionar, onDetalhes, onEncome
       {/* Thumbnail quadrada */}
       <View style={{ width: 86, height: 86 }}>
         {uri ? (
-          <Image source={{ uri }} style={{ width: 86, height: 86 }} resizeMode="cover" />
+          <Image
+            source={{ uri }}
+            style={{ width: 86, height: 86, resizeMode: "cover", opacity: semEstoque ? 0.55 : 1 }}
+          />
         ) : (
-          <View style={{ width: 86, height: 86, backgroundColor: "#fdf4ff",
-            justifyContent: "center", alignItems: "center" }}>
+          <View style={{
+            width: 86, height: 86, backgroundColor: "#fdf4ff",
+            justifyContent: "center", alignItems: "center"
+          }}>
             <MaterialIcons name="card-giftcard" size={30} color="#c084fc" />
+          </View>
+        )}
+        {/* Badge "Sem estoque" sobreposto à imagem */}
+        {semEstoque && (
+          <View style={{
+            position: "absolute", bottom: 0, left: 0, right: 0,
+            backgroundColor: "rgba(107,114,128,0.82)",
+            paddingVertical: 3, alignItems: "center",
+          }}>
+            <Text style={{ color: "#fff", fontSize: 9, fontWeight: "700", letterSpacing: 0.3 }}>
+              SEM ESTOQUE
+            </Text>
           </View>
         )}
       </View>
 
       {/* Info */}
-      <View style={{ flex: 1, paddingLeft: 10, paddingRight: 28,
-        paddingTop: 9, paddingBottom: 8, justifyContent: "space-between" }}>
+      <View style={{
+        flex: 1, paddingLeft: 10, paddingRight: 28,
+        paddingTop: 9, paddingBottom: 8, justifyContent: "space-between"
+      }}>
 
         {/* Nome + descrição */}
         <View>
@@ -467,7 +559,7 @@ function KitCard({ kit, favorito, onFavoritar, onAdicionar, onDetalhes, onEncome
 
         {/* Preço inline */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 }}>
-          <Text style={{ fontSize: 14, fontWeight: "800", color: "#ec4899" }}>
+          <Text style={{ fontSize: 14, fontWeight: "800", color: semEstoque ? "#9ca3af" : "#ec4899" }}>
             R$ {preco.toFixed(2)}
           </Text>
           {temDesconto && (
@@ -481,24 +573,44 @@ function KitCard({ kit, favorito, onFavoritar, onAdicionar, onDetalhes, onEncome
         <View style={{ flexDirection: "row", gap: 5, marginTop: 6 }}>
           <TouchableOpacity
             onPress={onDetalhes} activeOpacity={0.8}
-            style={{ flex: 1, flexDirection: "row", alignItems: "center",
+            style={{
+              flex: 1, flexDirection: "row", alignItems: "center",
               justifyContent: "center", gap: 3,
               borderWidth: 1.5, borderColor: "#a855f7", borderRadius: 7,
-              paddingVertical: 5, backgroundColor: "#faf5ff" }}
+              paddingVertical: 5, backgroundColor: "#faf5ff"
+            }}
           >
             <MaterialIcons name="info-outline" size={11} color="#a855f7" />
             <Text style={{ fontSize: 11, fontWeight: "700", color: "#a855f7" }}>Detalhes</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={onAdicionar} activeOpacity={0.8}
-            style={{ flex: 1, flexDirection: "row", alignItems: "center",
-              justifyContent: "center", gap: 3,
-              backgroundColor: "#a855f7", borderRadius: 7,
-              paddingVertical: 5 }}
-          >
-            <MaterialIcons name="add" size={11} color="#fff" />
-            <Text style={{ fontSize: 11, fontWeight: "700", color: "#fff" }}>Adicionar</Text>
-          </TouchableOpacity>
+
+          {semEstoque ? (
+            <TouchableOpacity
+              onPress={onAvisarMe} activeOpacity={0.8}
+              style={{
+                flex: 1, flexDirection: "row", alignItems: "center",
+                justifyContent: "center", gap: 3,
+                borderWidth: 1.5, borderColor: "#6b7280", borderRadius: 7,
+                paddingVertical: 5, backgroundColor: "#f9fafb"
+              }}
+            >
+              <MaterialIcons name="notifications-none" size={11} color="#6b7280" />
+              <Text style={{ fontSize: 10, fontWeight: "700", color: "#6b7280" }}>Avise-me</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={onAdicionar} activeOpacity={0.8}
+              style={{
+                flex: 1, flexDirection: "row", alignItems: "center",
+                justifyContent: "center", gap: 3,
+                backgroundColor: "#a855f7", borderRadius: 7,
+                paddingVertical: 5
+              }}
+            >
+              <MaterialIcons name="add" size={11} color="#fff" />
+              <Text style={{ fontSize: 11, fontWeight: "700", color: "#fff" }}>Adicionar</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -523,13 +635,13 @@ export default function LojaScreen() {
   const { lojaId } = useLocalSearchParams();
   const { addItem, itens } = useCart() as any;
 
-  const [loja,              setLoja]              = useState<any>(null);
-  const [produtos,          setProdutos]          = useState<any[]>([]);
-  const [kits,              setKits]              = useState<any[]>([]);
-  const [loading,           setLoading]           = useState(true);
-  const [busca,             setBusca]             = useState("");
+  const [loja, setLoja] = useState<any>(null);
+  const [produtos, setProdutos] = useState<any[]>([]);
+  const [kits, setKits] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busca, setBusca] = useState("");
   const [categoriaSelecionada, setCategoriaSelecionada] = useState("Tudo");
-  const [modoEntrega,       setModoEntrega]       = useState<ModoEntrega>("entrega");
+  const [modoEntrega, setModoEntrega] = useState<ModoEntrega>("entrega");
 
   // Persiste modoEntrega no AsyncStorage sempre que mudar
   function alterarModoEntrega(modo: ModoEntrega) {
@@ -537,11 +649,11 @@ export default function LojaScreen() {
     AsyncStorage.setItem(MODO_ENTREGA_KEY, modo);
   }
   const [favoritosProdutos, setFavoritosProdutos] = useState<number[]>([]);
-  const [lojaFavorita,      setLojaFavorita]      = useState(false);
-  const [produtoDetalhes,    setProdutoDetalhes]   = useState<any>(null);
-  const [produtoEncomendar,  setProdutoEncomendar]  = useState<any>(null);
+  const [lojaFavorita, setLojaFavorita] = useState(false);
+  const [produtoDetalhes, setProdutoDetalhes] = useState<any>(null);
+  const [produtoEncomendar, setProdutoEncomendar] = useState<any>(null);
   const [mostrarAgendamento, setMostrarAgendamento] = useState(false);
-  const [agendamento,        setAgendamento]        = useState<{ dataHora: string } | null>(null);
+  const [agendamento, setAgendamento] = useState<{ dataHora: string } | null>(null);
 
   useEffect(() => {
     carregarDados();
@@ -575,11 +687,15 @@ export default function LojaScreen() {
       ]);
       const lojaEncontrada = lojas.find((l) => l.id === Number(lojaId));
       setLoja(lojaEncontrada ?? null);
+      // Exclui produtos com disponivel=false (ocultos) e da categoria Kits e Combos
       const produtosComuns = prods.filter(
-        (p: any) => !(p.categoria?.descricao === "Kits e Combos" || p.isKit)
+        (p: any) =>
+          !deveOcultar(p) &&
+          !(p.categoria?.descricao === "Kits e Combos" || p.isKit)
       );
       setProdutos(produtosComuns);
-      setKits(ks);
+      // Exclui kits com disponivel=false (ocultos)
+      setKits(ks.filter((k: any) => !deveOcultar(k)));
     } finally {
       setLoading(false);
     }
@@ -629,6 +745,14 @@ export default function LojaScreen() {
       imagem: imagemUrl(produto.imagemUrl) ?? produto.imagem,
     });
     router.push("/carrinho");
+  }
+
+  function handleAvisarMe(produto: any) {
+    Alert.alert(
+      "Avise-me quando estiver disponível 🔔",
+      `Você será notificado quando "${produto.nome}" voltar ao estoque.`,
+      [{ text: "OK" }]
+    );
   }
 
   function confirmarEncomenda({ produto, quantidade, descricao, dataEntrega, observacoes }: any) {
@@ -824,8 +948,8 @@ export default function LojaScreen() {
               }}>
                 {modoEntrega === "entrega"
                   ? (loja?.loja?.endereco
-                      ? `Entrega em: ${loja.loja.endereco}`
-                      : "Endereço de entrega confirmado no checkout")
+                    ? `Entrega em: ${loja.loja.endereco}`
+                    : "Endereço de entrega confirmado no checkout")
                   : "Retirada gratuita no endereço da loja"}
               </Text>
             </View>
@@ -964,6 +1088,7 @@ export default function LojaScreen() {
                   favorito={favoritosProdutos.includes(produto.id)}
                   onFavoritar={() => favoritarProduto(produto)}
                   onAdicionar={() => adicionarCarrinho(produto)}
+                  onAvisarMe={() => handleAvisarMe(produto)}
                   onDetalhes={() => setProdutoDetalhes(produto)}
                   onEncomendar={() => setProdutoEncomendar(produto)}
                 />
@@ -987,6 +1112,7 @@ export default function LojaScreen() {
                   favorito={favoritosProdutos.includes(kit.id)}
                   onFavoritar={() => favoritarProduto(kit)}
                   onAdicionar={() => adicionarCarrinho(kit)}
+                  onAvisarMe={() => handleAvisarMe(kit)}
                   onDetalhes={() => setProdutoDetalhes(kit)}
                   onEncomendar={() => setProdutoEncomendar(kit)}
                 />
@@ -1033,9 +1159,9 @@ export default function LojaScreen() {
 
 // ── ModalAgendamento ──────────────────────────────────────────────────────────
 
-const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-const DIAS_SEMANA = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
-const HORARIOS = ["08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00"];
+const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const HORARIOS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
 
 function ModalAgendamento({ visible, nomeLoja, agendamentoAtual, onClose, onConfirmar }: {
   visible: boolean; nomeLoja: string; agendamentoAtual: string | null;
@@ -1043,11 +1169,11 @@ function ModalAgendamento({ visible, nomeLoja, agendamentoAtual, onClose, onConf
   onConfirmar: (dataHora: string) => void;
 }) {
   const hoje = new Date();
-  const [ano,       setAno]       = useState(hoje.getFullYear());
-  const [mes,       setMes]       = useState(hoje.getMonth());
-  const [diaSel,    setDiaSel]    = useState<number | null>(null);
-  const [horario,   setHorario]   = useState<string | null>(null);
-  const [obs,       setObs]       = useState("");
+  const [ano, setAno] = useState(hoje.getFullYear());
+  const [mes, setMes] = useState(hoje.getMonth());
+  const [diaSel, setDiaSel] = useState<number | null>(null);
+  const [horario, setHorario] = useState<string | null>(null);
+  const [obs, setObs] = useState("");
 
   function fechar() {
     setDiaSel(null); setHorario(null); setObs("");
@@ -1056,8 +1182,8 @@ function ModalAgendamento({ visible, nomeLoja, agendamentoAtual, onClose, onConf
 
   function navMes(delta: number) {
     let nm = mes + delta, na = ano;
-    if (nm < 0)  { nm = 11; na--; }
-    if (nm > 11) { nm = 0;  na++; }
+    if (nm < 0) { nm = 11; na--; }
+    if (nm > 11) { nm = 0; na++; }
     setMes(nm); setAno(na); setDiaSel(null); setHorario(null);
   }
 
@@ -1072,8 +1198,8 @@ function ModalAgendamento({ visible, nomeLoja, agendamentoAtual, onClose, onConf
 
   // Construção da grade do calendário
   const primeiroDia = new Date(ano, mes, 1).getDay();
-  const diasNoMes   = new Date(ano, mes + 1, 0).getDate();
-  const hojeStr     = `${hoje.getDate()}-${hoje.getMonth()}-${hoje.getFullYear()}`;
+  const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+  const hojeStr = `${hoje.getDate()}-${hoje.getMonth()}-${hoje.getFullYear()}`;
   const cells: (number | null)[] = [
     ...Array(primeiroDia).fill(null),
     ...Array.from({ length: diasNoMes }, (_, i) => i + 1),
@@ -1141,9 +1267,9 @@ function ModalAgendamento({ visible, nomeLoja, agendamentoAtual, onClose, onConf
               <View key={row} style={{ flexDirection: "row", marginBottom: 4 }}>
                 {cells.slice(row * 7, row * 7 + 7).map((dia, col) => {
                   if (!dia) return <View key={col} style={{ flex: 1 }} />;
-                  const passado  = isPast(dia);
+                  const passado = isPast(dia);
                   const selecionado = diaSel === dia;
-                  const ehHoje   = `${dia}-${mes}-${ano}` === hojeStr;
+                  const ehHoje = `${dia}-${mes}-${ano}` === hojeStr;
                   return (
                     <TouchableOpacity
                       key={col}
@@ -1209,7 +1335,7 @@ function ModalAgendamento({ visible, nomeLoja, agendamentoAtual, onClose, onConf
                 <MaterialIcons name="event-available" size={22} color="#7c3aed" />
                 <View>
                   <Text style={{ fontSize: 13, fontWeight: "700", color: "#374151" }}>
-                    {String(diaSel).padStart(2,"0")}/{String(mes+1).padStart(2,"0")}/{ano} às {horario}
+                    {String(diaSel).padStart(2, "0")}/{String(mes + 1).padStart(2, "0")}/{ano} às {horario}
                   </Text>
                   <Text style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>Data confirmada para agendamento</Text>
                 </View>

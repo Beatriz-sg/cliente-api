@@ -1,13 +1,13 @@
-import { View, Text, ScrollView, TouchableOpacity, Image, Alert } from "react-native";
-import {
-  toggleProdutoFavorito,
-  getProdutosFavoritos,
-} from "../../services/favoritosLocalService";
-import { LinearGradient } from "expo-linear-gradient";
-import { useState, useEffect } from "react";
 import { MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import { Alert, Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { apiUrl, imagemUrl } from "../../constants/api";
+import {
+  getProdutosFavoritos,
+  toggleProdutoFavorito,
+} from "../../services/favoritosLocalService";
 import { getStores } from "../../services/storeService";
 
 // Percentuais de desconto fixos atribuídos por posição (simulação até o backend suportar)
@@ -22,6 +22,8 @@ interface ProdutoOferta {
   imagemUrl?: string;
   confeiteiro?: { id: number };
   disponivel?: boolean;
+  estoque?: number | null;
+  quantidadeEstoque?: number | null;
   // campos resolvidos localmente
   _lojaId: number | null;
   _precoOriginal: number;
@@ -52,9 +54,14 @@ export default function OffersCarousel({ adicionarCarrinho }: any) {
       if (!res.ok) return;
       const data: any[] = await res.json();
 
-      // Filtra apenas produtos disponíveis e com lojaId resolvível
+      // Exclui produtos com disponivel=false ou estoque<=0, depois limita a 10
       const enriched: ProdutoOferta[] = data
-        .filter((p: any) => p.disponivel !== false)
+        .filter((p: any) => {
+          if (p.disponivel === false || p.ativo === false) return false;
+          const estoque = p.estoque ?? p.quantidadeEstoque ?? null;
+          if (estoque !== null && Number(estoque) <= 0) return false;
+          return true;
+        })
         .slice(0, 10)
         .map((p: any, idx: number) => {
           const confeiteiroId = p.confeiteiro?.id ?? null;
