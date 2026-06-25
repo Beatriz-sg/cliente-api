@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Stack, router } from "expo-router";
 import { CartProvider } from "../context/CartContext";
+import { UsuarioProvider } from "../context/UsuarioContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function RootLayout() {
@@ -21,8 +22,10 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <CartProvider>
-      <Stack screenOptions={{ headerShown: false }} />
-    </CartProvider>
+    <UsuarioProvider>
+      <CartProvider>
+        <Stack screenOptions={{ headerShown: false }} />
+      </CartProvider>
+    </UsuarioProvider>
   );
 }

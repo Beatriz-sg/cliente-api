@@ -9,14 +9,19 @@ interface UsuarioContexto {
   email: string;
   fotoPerfil: string | null;
   logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
   bairro: string | null;
   cidade: string | null;
+  cep: string | null;
+  estado: string | null;
   recarregar: () => Promise<void>;
 }
 
 const UsuarioContext = createContext<UsuarioContexto>({
   id: null, nome: "", email: "", fotoPerfil: null,
-  logradouro: null, bairro: null, cidade: null,
+  logradouro: null, numero: null, complemento: null,
+  bairro: null, cidade: null, cep: null, estado: null,
   recarregar: async () => {},
 });
 
@@ -25,9 +30,13 @@ export function UsuarioProvider({ children }: { children: React.ReactNode }) {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [fotoPerfil, setFotoPerfil] = useState<string | null>(null);
-  const [logradouro, setLogradouro] = useState<string | null>(null);
-  const [bairro, setBairro] = useState<string | null>(null);
-  const [cidade, setCidade] = useState<string | null>(null);
+  const [logradouro,  setLogradouro]  = useState<string | null>(null);
+  const [numero,      setNumero]      = useState<string | null>(null);
+  const [complemento, setComplemento] = useState<string | null>(null);
+  const [bairro,      setBairro]      = useState<string | null>(null);
+  const [cidade,      setCidade]      = useState<string | null>(null);
+  const [cep,         setCep]         = useState<string | null>(null);
+  const [estado,      setEstado]      = useState<string | null>(null);
 
   const recarregar = useCallback(async () => {
     try {
@@ -57,11 +66,14 @@ export function UsuarioProvider({ children }: { children: React.ReactNode }) {
     setId(u.id ?? null);
     setNome(u.nome ?? "");
     setEmail(u.email ?? "");
-    // Aceita "fotoPerfil", "foto" ou "foto_perfil"
     setFotoPerfil(u.fotoPerfil ?? u.foto ?? u.foto_perfil ?? null);
     setLogradouro(u.logradouro ?? u.endereco ?? null);
+    setNumero(u.numero ?? null);
+    setComplemento(u.complemento ?? null);
     setBairro(u.bairro ?? null);
     setCidade(u.cidade ?? null);
+    setCep(u.cep ?? null);
+    setEstado(u.estado ?? u.uf ?? null);
   }
 
   useEffect(() => { recarregar(); }, [recarregar]);
@@ -69,7 +81,7 @@ export function UsuarioProvider({ children }: { children: React.ReactNode }) {
   return (
     <UsuarioContext.Provider value={{
       id, nome, email, fotoPerfil,
-      logradouro, bairro, cidade, recarregar,
+      logradouro, numero, complemento, bairro, cidade, cep, estado, recarregar,
     }}>
       {children}
     </UsuarioContext.Provider>

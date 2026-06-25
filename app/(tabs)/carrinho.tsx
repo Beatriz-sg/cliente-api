@@ -1,1383 +1,357 @@
 import React, { useEffect, useState } from "react";
-
 import {
-  Alert,
-  Image,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+  Alert, Image, ScrollView, Text, TextInput,
+  TouchableOpacity, View,
 } from "react-native";
-
 import { LinearGradient } from "expo-linear-gradient";
-
 import { MaterialIcons } from "@expo/vector-icons";
-
 import { router } from "expo-router";
-
 import { useCart } from "../../context/CartContext";
-
 import { calcularFreteGratis } from "../../services/freteService";
 
+const DISTANCIA_KM = 3;
+
+const card = {
+  backgroundColor: "#fff",
+  borderRadius: 24,
+  padding: 20,
+  marginHorizontal: 22,
+  marginBottom: 16,
+  shadowColor: "#c45ccf",
+  shadowOpacity: 0.07,
+  shadowRadius: 10,
+  elevation: 3,
+} as const;
+
+const inputSt = {
+  backgroundColor: "#f9f3fb",
+  borderRadius: 14,
+  paddingHorizontal: 16,
+  paddingVertical: 12,
+  fontSize: 14,
+  borderWidth: 1,
+  borderColor: "#f1d4ff",
+  color: "#333",
+  flex: 1,
+} as const;
+
 export default function CarrinhoScreen() {
-  const {
-    itens,
-    addItem,
-    removerItem,
-    aumentarQuantidade,
-    diminuirQuantidade,
-    subtotal,
-  } = useCart() as any;
+  const { itens, removerItem, aumentarQuantidade, diminuirQuantidade, subtotal } = useCart() as any;
 
-  const [cupom, setCupom] = useState("");
-
+  const [cupom,    setCupom]    = useState("");
   const [desconto, setDesconto] = useState(0);
 
-  const distanciaKm = 3;
-
-  const frete = calcularFreteGratis(subtotal, distanciaKm);
-
+  const frete = calcularFreteGratis(subtotal, DISTANCIA_KM);
   const total = subtotal + frete - desconto;
 
   useEffect(() => {
-    if (cupom === "DOCE10" && subtotal < 100) {
-      setDesconto(0);
-    }
+    console.log("[Carrinho] itens:", JSON.stringify(
+      itens.map((i: any) => ({ id: i.id, nome: i.nome, lojaId: i.lojaId, quantidade: i.quantidade }))
+    ));
+  }, [itens]);
 
-    if (cupom === "BOLO20" && subtotal < 150) {
+  useEffect(() => {
+    if ((cupom === "DOCE10" && subtotal < 100) || (cupom === "BOLO20" && subtotal < 150)) {
       setDesconto(0);
     }
   }, [subtotal, cupom]);
 
-  const sugestoes = [
-    {
-      id: 1,
-      nome: "Bolo Red Velvet",
-      preco: 24.9,
-
-      imagem: "https://images.unsplash.com/photo-1578985545062-69928b1d9587",
-    },
-
-    {
-      id: 4,
-      nome: "Donut Chocolate",
-      preco: 12.9,
-
-      imagem: "https://images.unsplash.com/photo-1509440159596-0249088772ff",
-    },
-
-    {
-      id: 5,
-      nome: "Cookie Nutella",
-      preco: 10.9,
-
-      imagem: "https://images.unsplash.com/photo-1499636136210-6f4ee915583e",
-    },
-  ];
-
   function aplicarCupom() {
     if (cupom === "DOCE10") {
-      if (subtotal < 100) {
-        Alert.alert("Pedido mínimo", "Esse cupom é válido acima de R$ 100.");
-
-        return;
-      }
-
+      if (subtotal < 100) { Alert.alert("Pedido mínimo", "Esse cupom é válido acima de R$ 100."); return; }
       setDesconto(10);
-
       Alert.alert("Cupom aplicado 💖", "Você ganhou R$ 10 de desconto!");
-
       return;
     }
-
     if (cupom === "BOLO20") {
-      if (subtotal < 150) {
-        Alert.alert("Pedido mínimo", "Esse cupom é válido acima de R$ 150.");
-
-        return;
-      }
-
+      if (subtotal < 150) { Alert.alert("Pedido mínimo", "Esse cupom é válido acima de R$ 150."); return; }
       setDesconto(subtotal * 0.2);
-
       Alert.alert("Cupom aplicado 💖", "Você ganhou 20% OFF!");
-
       return;
     }
-
     setDesconto(0);
-
     Alert.alert("Cupom inválido", "Esse cupom não existe.");
   }
 
-  function trocarLoja() {
-    Alert.alert(
-      "Limpar carrinho?",
-      "Seu carrinho possui itens de outra loja. Deseja limpar o carrinho para adicionar itens desta loja?",
-      [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
+  function confirmarRemocao(id: any) {
+    Alert.alert("Remover item", "Deseja remover este item do carrinho?", [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Remover", onPress: () => removerItem(id) },
+    ]);
+  }
 
-        {
-          text: "Continuar",
+  function handleDiminuir(item: any) {
+    if (item.quantidade === 1) { confirmarRemocao(item.id); return; }
+    diminuirQuantidade(item.id);
+  }
 
-          onPress: () => {
-            router.push("/loja");
-          },
-        },
-      ],
+  function irParaCheckout() {
+    router.push({
+      pathname: "/(tabs)/checkout",
+      params: {
+        cupomCodigo: cupom,
+        descontoValor: String(desconto),
+        freteValor: String(frete),
+      },
+    });
+  }
+
+  if (itens.length === 0) {
+    return (
+      <LinearGradient colors={["#fff7fc", "#f7ecff"]} style={{ flex: 1 }}>
+        <View style={{ paddingTop: 60, paddingHorizontal: 22, marginBottom: 24 }}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <MaterialIcons name="arrow-back" size={24} color="#333" />
+          </TouchableOpacity>
+          <Text style={{ fontSize: 26, fontWeight: "bold", color: "#333", marginTop: 10 }}>Meu Carrinho 🛒</Text>
+        </View>
+        <View style={[card, { alignItems: "center", paddingVertical: 36 }]}>
+          <MaterialIcons name="shopping-cart" size={60} color="#d8b4fe" />
+          <Text style={{ marginTop: 14, fontSize: 17, fontWeight: "bold", color: "#333" }}>
+            Seu carrinho está vazio
+          </Text>
+          <Text style={{ color: "#777", marginTop: 6, fontSize: 13, textAlign: "center" }}>
+            Explore as confeitarias e adicione seus favoritos
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/(tabs)/home")}
+            activeOpacity={0.8}
+            style={{ marginTop: 20, borderRadius: 14, overflow: "hidden" }}
+          >
+            <LinearGradient
+              colors={["#ff69b4", "#a855f7"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              style={{ paddingHorizontal: 28, paddingVertical: 14 }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 15 }}>Ver lojas</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+        <BottomNav itens={itens} />
+      </LinearGradient>
     );
   }
 
   return (
-    <LinearGradient
-      colors={["#fff7fc", "#f7ecff"]}
-      style={{
-        flex: 1,
-      }}
-    >
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingBottom: 140,
-        }}
-      >
+    <LinearGradient colors={["#fff7fc", "#f7ecff"]} style={{ flex: 1 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
+
         {/* HEADER */}
-
-        <View
-          style={{
-            paddingTop: 60,
-            paddingHorizontal: 22,
-          }}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-
-              alignItems: "center",
-            }}
-          >
-            <Image
-              source={require("../../assets/images/logo.png")}
-              style={{
-                width: 42,
-                height: 42,
-
-                borderRadius: 50,
-
-                marginRight: 10,
-              }}
-            />
-
-            <Text
-              style={{
-                fontSize: 28,
-                fontWeight: "bold",
-
-                color: "#333",
-              }}
-            >
-              Meu Carrinho
-            </Text>
-          </View>
-
-          <Text
-            style={{
-              color: "#777",
-
-              marginTop: 6,
-
-              fontSize: 14,
-            }}
-          >
-            Revise seus itens antes de continuar
+        <View style={{ paddingTop: 60, paddingHorizontal: 22, marginBottom: 8 }}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <MaterialIcons name="arrow-back" size={24} color="#333" />
+          </TouchableOpacity>
+          <Text style={{ fontSize: 26, fontWeight: "bold", color: "#333", marginTop: 10 }}>Meu Carrinho 🛒</Text>
+          <Text style={{ color: "#777", marginTop: 4, fontSize: 13 }}>
+            {itens.length} {itens.length === 1 ? "item" : "itens"} · R$ {subtotal.toFixed(2)}
           </Text>
         </View>
 
-        {/* LOJA */}
-
-        {itens.length > 0 && (
-          <View
-            style={{
-              marginTop: 20,
-              marginHorizontal: 22,
-
-              paddingVertical: 6,
-            }}
-          >
-            <TouchableOpacity
-              onPress={() => router.push("/loja")}
-              activeOpacity={0.8}
-              style={{
-                flexDirection: "row",
-
-                alignItems: "center",
-              }}
-            >
-              <Image
-                source={{
-                  uri: "https://images.unsplash.com/photo-1551024601-bec78aea704b",
-                }}
-                style={{
-                  width: 52,
-                  height: 52,
-
-                  borderRadius: 18,
-
-                  marginRight: 12,
-                }}
-              />
-
-              <View>
-                <Text
-                  style={{
-                    fontSize: 20,
-
-                    fontWeight: "bold",
-
-                    color: "#333",
-                  }}
-                >
-                  Sweet Cake
-                </Text>
-
-                <Text
-                  style={{
-                    color: "#777",
-
-                    marginTop: 4,
-                  }}
-                >
-                  ⭐ 4.9 • 35-50 min
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* PRODUTOS */}
-
-        <View
-          style={{
-            marginTop: 20,
-            paddingHorizontal: 22,
-          }}
-        >
-          {itens.length === 0 ? (
-            <View
-              style={{
-                backgroundColor: "#fff",
-
-                borderRadius: 28,
-
-                padding: 30,
-
-                alignItems: "center",
-              }}
-            >
-              <MaterialIcons name="shopping-cart" size={70} color="#d8b4fe" />
-
-              <Text
-                style={{
-                  marginTop: 16,
-
-                  fontSize: 18,
-
-                  fontWeight: "bold",
-
-                  color: "#333",
-                }}
-              >
-                Seu carrinho está vazio
-              </Text>
-
-              <TouchableOpacity
-                onPress={() => router.push("/(tabs)/home")}
-                activeOpacity={0.8}
-                style={{
-                  marginTop: 20,
-
-                  backgroundColor: "#a855f7",
-
-                  paddingHorizontal: 24,
-                  paddingVertical: 14,
-
-                  borderRadius: 16,
-                }}
-              >
-                <Text
-                  style={{
-                    color: "#fff",
-
-                    fontWeight: "bold",
-                  }}
-                >
-                  Ir para loja
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            itens.map((item: any) => (
-              <View
-                key={item.id}
-                style={{
-                  backgroundColor: "#fff",
-
-                  borderRadius: 26,
-
-                  marginBottom: 18,
-
-                  padding: 16,
-
-                  flexDirection: "row",
-
-                  shadowColor: "#c45ccf",
-
-                  shadowOpacity: 0.08,
-
-                  shadowRadius: 10,
-
-                  elevation: 4,
-                }}
-              >
-                {/* IMAGEM */}
-
+        {/* ── 1. ITENS ─────────────────────────────────────────────────── */}
+        <View style={card}>
+          <SectionTitle icon="shopping-bag" label="Itens do Pedido" />
+          {itens.map((item: any, idx: number) => (
+            <View key={item.id}>
+              {idx > 0 && <View style={{ height: 1, backgroundColor: "#f3e8ff", marginVertical: 14 }} />}
+              <View style={{ flexDirection: "row" }}>
                 <Image
-                  source={
-                    typeof item.imagem === "string"
-                      ? { uri: item.imagem }
-                      : item.imagem
-                  }
-                  style={{
-                    width: 90,
-                    height: 90,
-                    borderRadius: 18,
-                  }}
+                  source={typeof item.imagem === "string" ? { uri: item.imagem } : item.imagem}
+                  style={{ width: 72, height: 72, borderRadius: 16 }}
                 />
-
-                {/* INFO */}
-
-                <View
-                  style={{
-                    flex: 1,
-
-                    marginLeft: 14,
-                  }}
-                >
-                  <View
-                    style={{
-                      flexDirection: "row",
-
-                      justifyContent: "space-between",
-
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 17,
-                        fontWeight: "bold",
-
-                        color: "#333",
-
-                        flex: 1,
-                      }}
-                    >
+                <View style={{ flex: 1, marginLeft: 14 }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <Text style={{ fontSize: 15, fontWeight: "700", color: "#333", flex: 1, marginRight: 8 }}>
                       {item.nome}
                     </Text>
-
-                    <TouchableOpacity
-                      onPress={() => {
-                        Alert.alert(
-                          "Remover item",
-                          "Deseja remover este item do carrinho?",
-                          [
-                            {
-                              text: "Cancelar",
-                              style: "cancel",
-                            },
-
-                            {
-                              text: "Remover",
-
-                              onPress: () => removerItem(item.id),
-                            },
-                          ],
-                        );
-                      }}
-                    >
-                      <MaterialIcons
-                        name="delete-outline"
-                        size={22}
-                        color="#ff4d6d"
-                      />
+                    <TouchableOpacity onPress={() => confirmarRemocao(item.id)}>
+                      <MaterialIcons name="delete-outline" size={20} color="#d1d5db" />
                     </TouchableOpacity>
                   </View>
-
-                  <Text
-                    style={{
-                      color: "#777",
-
-                      marginTop: 4,
-                    }}
-                  >
-                    {item.descricao}
-                  </Text>
-
-                  {/* PREÇO */}
-
-                  <Text
-                    style={{
-                      color: "#ff69b4",
-
-                      fontSize: 18,
-
-                      fontWeight: "bold",
-
-                      marginTop: 14,
-                    }}
-                  >
-                    R$ {(item.preco * item.quantidade).toFixed(2)}
-                  </Text>
-
-                  {/* QUANTIDADE */}
-
-                  <View
-                    style={{
-                      flexDirection: "row",
-
-                      alignItems: "center",
-
-                      backgroundColor: "#f9f3fb",
-
-                      borderRadius: 14,
-
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-
-                      marginTop: 12,
-
-                      alignSelf: "flex-start",
-                    }}
-                  >
-                    {/* MENOS */}
-
-                    <TouchableOpacity
-                      onPress={() => {
-                        if (item.quantidade === 1) {
-                          Alert.alert(
-                            "Remover item",
-                            "Deseja remover este item do carrinho?",
-                            [
-                              {
-                                text: "Cancelar",
-                                style: "cancel",
-                              },
-
-                              {
-                                text: "Remover",
-
-                                onPress: () => removerItem(item.id),
-                              },
-                            ],
-                          );
-
-                          return;
-                        }
-
-                        diminuirQuantidade(item.id);
-                      }}
-                    >
-                      <MaterialIcons name="remove" size={22} color="#a855f7" />
-                    </TouchableOpacity>
-
-                    {/* QUANTIDADE */}
-
-                    <Text
-                      style={{
-                        marginHorizontal: 18,
-
-                        fontWeight: "bold",
-
-                        fontSize: 16,
-
-                        color: "#333",
-                      }}
-                    >
-                      {item.quantidade}
+                  {!!item.descricao && (
+                    <Text numberOfLines={1} style={{ color: "#9ca3af", fontSize: 12, marginTop: 2 }}>
+                      {item.descricao}
                     </Text>
-
-                    {/* MAIS */}
-
-                    <TouchableOpacity
-                      onPress={() => aumentarQuantidade(item.id)}
-                    >
-                      <MaterialIcons name="add" size={22} color="#a855f7" />
-                    </TouchableOpacity>
+                  )}
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
+                    <Text style={{ color: "#ff69b4", fontSize: 16, fontWeight: "bold" }}>
+                      R$ {(item.preco * item.quantidade).toFixed(2)}
+                    </Text>
+                    <View style={{
+                      flexDirection: "row", alignItems: "center",
+                      backgroundColor: "#f9f3fb", borderRadius: 12,
+                      borderWidth: 1, borderColor: "#f1d4ff",
+                      paddingHorizontal: 4,
+                    }}>
+                      <TouchableOpacity onPress={() => handleDiminuir(item)} style={{ padding: 6 }}>
+                        <MaterialIcons name="remove" size={18} color="#a855f7" />
+                      </TouchableOpacity>
+                      <Text style={{ marginHorizontal: 14, fontWeight: "bold", fontSize: 15, color: "#333" }}>
+                        {item.quantidade}
+                      </Text>
+                      <TouchableOpacity onPress={() => aumentarQuantidade(item.id)} style={{ padding: 6 }}>
+                        <MaterialIcons name="add" size={18} color="#a855f7" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               </View>
-            ))
-          )}
+            </View>
+          ))}
         </View>
 
-        {/* CUPOM */}
-        {itens.length > 0 && (
-          <View
-            style={{
-              marginHorizontal: 22,
-
-              backgroundColor: "#fff",
-
-              borderRadius: 26,
-
-              padding: 18,
-
-              marginBottom: 20,
-
-              shadowColor: "#c45ccf",
-
-              shadowOpacity: 0.08,
-
-              shadowRadius: 10,
-
-              elevation: 4,
-            }}
-          >
-            <Text
-              style={{
-                color: "#333",
-
-                fontWeight: "bold",
-
-                fontSize: 17,
-
-                marginBottom: 14,
-              }}
-            >
-              Cupom 🎁
-            </Text>
-
-            <Text
-              style={{
-                color: "#777",
-
-                marginTop: 6,
-
-                marginBottom: 14,
-              }}
-            >
-              Cupons disponíveis da loja
-            </Text>
-
-            <View
-              style={{
-                flexDirection: "row",
-
-                marginBottom: 16,
-              }}
-            >
+        {/* ── 2. CUPOM ─────────────────────────────────────────────────── */}
+        <View style={card}>
+          <SectionTitle icon="local-offer" label="Cupom de Desconto" />
+          <View style={{ flexDirection: "row", gap: 8, marginBottom: 14 }}>
+            {[
+              { codigo: "DOCE10", label: "R$10 off +R$100" },
+              { codigo: "BOLO20", label: "20% off +R$150" },
+            ].map(c => (
               <TouchableOpacity
-                onPress={() => {
-                  Alert.alert(
-                    "Cupom DOCE10 💖",
-                    "Em compras acima de R$ 100 você ganha R$ 10 de desconto.",
-                    [
-                      {
-                        text: "Cancelar",
-                        style: "cancel",
-                      },
-
-                      {
-                        text: "Usar cupom",
-
-                        onPress: () => {
-                          setCupom("DOCE10");
-
-                          setDesconto(10);
-                        },
-                      },
-                    ],
-                  );
-                }}
+                key={c.codigo}
+                onPress={() => setCupom(c.codigo)}
                 style={{
-                  backgroundColor: "#f3e8ff",
-
-                  paddingHorizontal: 14,
-                  paddingVertical: 10,
-
-                  borderRadius: 14,
-
-                  marginRight: 10,
+                  paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
+                  borderWidth: 1.5,
+                  borderColor: cupom === c.codigo ? "#a855f7" : "#f1d4ff",
+                  backgroundColor: cupom === c.codigo ? "#f3e8ff" : "#f9f3fb",
                 }}
               >
-                <Text
-                  style={{
-                    color: "#a855f7",
-
-                    fontWeight: "bold",
-                  }}
-                >
-                  DOCE10
+                <Text style={{ fontSize: 12, fontWeight: "700", color: cupom === c.codigo ? "#a855f7" : "#777" }}>
+                  {c.codigo}
                 </Text>
+                <Text style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>{c.label}</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => {
-                  Alert.alert(
-                    "Cupom BOLO20 💖",
-                    "Em compras acima de R$ 150 você ganha 20% OFF.",
-                    [
-                      {
-                        text: "Cancelar",
-                        style: "cancel",
-                      },
-
-                      {
-                        text: "Usar cupom",
-
-                        onPress: () => {
-                          setCupom("BOLO20");
-
-                          if (subtotal >= 150) {
-                            setDesconto(subtotal * 0.2);
-                          }
-                        },
-                      },
-                    ],
-                  );
-                }}
-                style={{
-                  backgroundColor: "#fce7f3",
-
-                  paddingHorizontal: 14,
-                  paddingVertical: 10,
-
-                  borderRadius: 14,
-                }}
-              >
-                <Text
-                  style={{
-                    color: "#ff4d9d",
-
-                    fontWeight: "bold",
-                  }}
-                >
-                  BOLO20
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View
-              style={{
-                flexDirection: "row",
-
-                alignItems: "center",
-              }}
-            >
-              <TextInput
-                value={cupom}
-                onChangeText={setCupom}
-                placeholder="Digite seu cupom"
-                placeholderTextColor="#aaa"
-                style={{
-                  flex: 1,
-
-                  backgroundColor: "#f9f3fb",
-
-                  borderRadius: 16,
-
-                  paddingHorizontal: 16,
-                  paddingVertical: 5,
-
-                  borderWidth: 1,
-                  borderColor: "#f1d4ff",
-
-                  marginRight: 8,
-                }}
-              />
-
-              <TouchableOpacity
-                onPress={aplicarCupom}
-                activeOpacity={0.8}
-                style={{
-                  backgroundColor: "#a855f7",
-
-                  borderRadius: 16,
-
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                }}
-              >
-                <Text
-                  style={{
-                    color: "#fff",
-
-                    fontWeight: "bold",
-                  }}
-                >
-                  Aplicar
-                </Text>
-              </TouchableOpacity>
-            </View>
+            ))}
           </View>
-        )}
-
-        {/* RESUMO */}
-
-        {itens.length > 0 && (
-          <View
-            style={{
-              paddingHorizontal: 22,
-            }}
-          >
-            <View
-              style={{
-                backgroundColor: "#fff",
-
-                borderRadius: 30,
-
-                padding: 22,
-
-                shadowColor: "#c45ccf",
-
-                shadowOpacity: 0.08,
-
-                shadowRadius: 10,
-
-                elevation: 4,
-              }}
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <TextInput
+              value={cupom}
+              onChangeText={t => { setCupom(t.toUpperCase()); }}
+              placeholder="Digite seu cupom"
+              placeholderTextColor="#aaa"
+              style={inputSt}
+            />
+            <TouchableOpacity
+              onPress={aplicarCupom}
+              activeOpacity={0.8}
+              style={{ backgroundColor: "#a855f7", borderRadius: 14, paddingHorizontal: 18, justifyContent: "center" }}
             >
-              {/* SUBTOTAL */}
-
-              <View
-                style={{
-                  flexDirection: "row",
-
-                  justifyContent: "space-between",
-
-                  marginBottom: 14,
-                }}
-              >
-                <Text
-                  style={{
-                    color: "#777",
-
-                    fontSize: 15,
-                  }}
-                >
-                  Subtotal
-                </Text>
-
-                <Text
-                  style={{
-                    color: "#333",
-
-                    fontWeight: "600",
-                  }}
-                >
-                  R$ {subtotal.toFixed(2)}
-                </Text>
-              </View>
-
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  marginBottom: 14,
-                }}
-              >
-                <Text
-                  style={{
-                    color: "#777",
-                    fontSize: 15,
-                  }}
-                >
-                  Frete
-                </Text>
-
-                <Text
-                  style={{
-                    color: frete === 0 ? "#22c55e" : "#333",
-                    fontWeight: "600",
-                  }}
-                >
-                  {frete === 0 ? "Grátis 🎉" : `R$ ${frete.toFixed(2)}`}
-                </Text>
-              </View>
-
-              {/* DESCONTO */}
-              {desconto > 0 && (
-                <View
-                  style={{
-                    flexDirection: "row",
-
-                    justifyContent: "space-between",
-
-                    marginBottom: 20,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: "#777",
-
-                      fontSize: 15,
-                    }}
-                  >
-                    Desconto
-                  </Text>
-
-                  <Text
-                    style={{
-                      color: "#22c55e",
-
-                      fontWeight: "bold",
-                    }}
-                  >
-                    - R$ {desconto.toFixed(2)}
-                  </Text>
-                </View>
-              )}
-
-              {subtotal < 50 && (
-                <Text
-                  style={{
-                    color: "#22c55e",
-                    marginBottom: 15,
-                    fontWeight: "600",
-                  }}
-                >
-                  🎁 Faltam R$ {(50 - subtotal).toFixed(2)} para ganhar frete
-                  grátis!
-                </Text>
-              )}
-
-              {/* TOTAL */}
-
-              <View
-                style={{
-                  flexDirection: "row",
-
-                  justifyContent: "space-between",
-
-                  marginBottom: 24,
-                }}
-              >
-                <Text
-                  style={{
-                    color: "#333",
-
-                    fontSize: 19,
-
-                    fontWeight: "bold",
-                  }}
-                >
-                  Total parcial
-                </Text>
-
-                <Text
-                  style={{
-                    color: "#ff69b4",
-
-                    fontSize: 24,
-
-                    fontWeight: "bold",
-                  }}
-                >
-                  R$ {total.toFixed(2)}
-                </Text>
-              </View>
-
-              {/* BOTÃO */}
-
-              <TouchableOpacity
-                onPress={() => router.push("/checkout")}
-                activeOpacity={0.8}
-                style={{
-                  borderRadius: 18,
-                  overflow: "hidden",
-                }}
-              >
-                <LinearGradient
-                  colors={["#ff69b4", "#a855f7"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{
-                    paddingVertical: 18,
-
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: "#fff",
-
-                      fontWeight: "bold",
-
-                      fontSize: 17,
-                    }}
-                  >
-                    Continuar
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
+              <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 14 }}>Aplicar</Text>
+            </TouchableOpacity>
           </View>
-        )}
-
-        {/* SUGESTÕES */}
-
-        {itens.length > 0 && (
-          <View
-            style={{
-              marginTop: 28,
-
-              paddingHorizontal: 22,
-
-              marginBottom: 20,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 20,
-
-                fontWeight: "bold",
-
-                color: "#333",
-
-                marginBottom: 18,
-              }}
-            >
-              Adicionar mais itens
-            </Text>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {/* ITEM 1 */}
-
-              <TouchableOpacity
-                activeOpacity={0.8}
-                style={{
-                  width: 140,
-
-                  backgroundColor: "#fff",
-
-                  borderRadius: 24,
-
-                  padding: 14,
-
-                  marginRight: 16,
-
-                  shadowColor: "#c45ccf",
-
-                  shadowOpacity: 0.08,
-
-                  shadowRadius: 10,
-
-                  elevation: 4,
-                }}
-              >
-                <Image
-                  source={{
-                    uri: "https://images.unsplash.com/photo-1578985545062-69928b1d9587",
-                  }}
-                  style={{
-                    width: "100%",
-                    height: 95,
-
-                    borderRadius: 18,
-                  }}
-                />
-
-                <Text
-                  style={{
-                    marginTop: 10,
-
-                    fontWeight: "bold",
-
-                    color: "#333",
-
-                    fontSize: 14,
-                  }}
-                >
-                  Bolo Red Velvet
-                </Text>
-
-                <Text
-                  style={{
-                    color: "#ff69b4",
-
-                    fontWeight: "bold",
-
-                    marginTop: 6,
-                  }}
-                >
-                  R$ 24,90
-                </Text>
-                <TouchableOpacity
-                  onPress={() =>
-                    addItem({
-                      id: 1,
-                      nome: "Bolo Red Velvet",
-                      preco: 24.9,
-                      imagem:
-                        "https://images.unsplash.com/photo-1578985545062-69928b1d9587",
-                      descricao: "Delicioso doce da confeitaria",
-                    })
-                  }
-                  activeOpacity={0.8}
-                  style={{
-                    marginTop: 12,
-
-                    backgroundColor: "#a855f7",
-
-                    borderRadius: 14,
-
-                    paddingVertical: 8,
-
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: "#fff",
-
-                      fontWeight: "bold",
-                    }}
-                  >
-                    Adicionar
-                  </Text>
-                </TouchableOpacity>
-              </TouchableOpacity>
-
-              {/* ITEM 2 */}
-
-              <TouchableOpacity
-                activeOpacity={0.8}
-                style={{
-                  width: 140,
-
-                  backgroundColor: "#fff",
-
-                  borderRadius: 24,
-
-                  padding: 14,
-
-                  marginRight: 16,
-
-                  shadowColor: "#c45ccf",
-
-                  shadowOpacity: 0.08,
-
-                  shadowRadius: 10,
-
-                  elevation: 4,
-                }}
-              >
-                <Image
-                  source={{
-                    uri: "https://images.unsplash.com/photo-1509440159596-0249088772ff",
-                  }}
-                  style={{
-                    width: "100%",
-                    height: 95,
-
-                    borderRadius: 18,
-                  }}
-                />
-
-                <Text
-                  style={{
-                    marginTop: 10,
-
-                    fontWeight: "bold",
-
-                    color: "#333",
-
-                    fontSize: 14,
-                  }}
-                >
-                  Donut Chocolate
-                </Text>
-
-                <Text
-                  style={{
-                    color: "#ff69b4",
-
-                    fontWeight: "bold",
-
-                    marginTop: 6,
-                  }}
-                >
-                  R$ 12,90
-                </Text>
-
-                <TouchableOpacity
-                  onPress={() =>
-                    addItem({
-                      id: 4,
-                      nome: "Donut Chocolate",
-                      preco: 12.9,
-                      imagem:
-                        "https://images.unsplash.com/photo-1509440159596-0249088772ff",
-                      descricao: "Delicioso doce da confeitaria",
-                    })
-                  }
-                  activeOpacity={0.8}
-                  style={{
-                    marginTop: 12,
-
-                    backgroundColor: "#a855f7",
-
-                    borderRadius: 14,
-
-                    paddingVertical: 8,
-
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: "#fff",
-
-                      fontWeight: "bold",
-                    }}
-                  >
-                    Adicionar
-                  </Text>
-                </TouchableOpacity>
-              </TouchableOpacity>
-
-              {/* ITEM 3 */}
-
-              <TouchableOpacity
-                activeOpacity={0.8}
-                style={{
-                  width: 140,
-
-                  backgroundColor: "#fff",
-
-                  borderRadius: 24,
-
-                  padding: 14,
-
-                  marginRight: 16,
-
-                  shadowColor: "#c45ccf",
-
-                  shadowOpacity: 0.08,
-
-                  shadowRadius: 10,
-
-                  elevation: 4,
-                }}
-              >
-                <Image
-                  source={{
-                    uri: "https://images.unsplash.com/photo-1499636136210-6f4ee915583e",
-                  }}
-                  style={{
-                    width: "100%",
-                    height: 95,
-
-                    borderRadius: 18,
-                  }}
-                />
-
-                <Text
-                  style={{
-                    marginTop: 10,
-
-                    fontWeight: "bold",
-
-                    color: "#333",
-
-                    fontSize: 14,
-                  }}
-                >
-                  Cookie Nutella
-                </Text>
-
-                <Text
-                  style={{
-                    color: "#ff69b4",
-
-                    fontWeight: "bold",
-
-                    marginTop: 6,
-                  }}
-                >
-                  R$ 10,90
-                </Text>
-
-                <TouchableOpacity
-                  onPress={() =>
-                    addItem({
-                      id: 5,
-                      nome: "Cookie Nutella",
-                      preco: 10.9,
-                      imagem:
-                        "https://images.unsplash.com/photo-1499636136210-6f4ee915583e",
-                      descricao: "Delicioso biscoito da confeitaria",
-                    })
-                  }
-                  activeOpacity={0.8}
-                  style={{
-                    marginTop: 12,
-
-                    backgroundColor: "#a855f7",
-
-                    borderRadius: 14,
-
-                    paddingVertical: 8,
-
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: "#fff",
-
-                      fontWeight: "bold",
-                    }}
-                  >
-                    Adicionar
-                  </Text>
-                </TouchableOpacity>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        )}
-      </ScrollView>
-      {/* MENU INFERIOR */}
-
-      <LinearGradient
-        colors={["#ff69b4", "#a855f7"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={{
-          position: "absolute",
-
-          bottom: 35,
-
-          left: 20,
-
-          right: 20,
-
-          borderRadius: 28,
-
-          flexDirection: "row",
-
-          justifyContent: "space-around",
-
-          alignItems: "center",
-
-          paddingVertical: 16,
-
-          shadowColor: "#c45ccf",
-
-          shadowOpacity: 0.12,
-
-          shadowRadius: 12,
-
-          elevation: 10,
-        }}
-      >
-        {/* HOME */}
-
-        <TouchableOpacity
-          onPress={() => router.push("/(tabs)/home")}
-          style={{
-            alignItems: "center",
-          }}
-        >
-          <MaterialIcons name="home" size={24} color="#fff" />
-        </TouchableOpacity>
-
-        {/* CARRINHO ATIVO */}
-
-        <TouchableOpacity
-          style={{
-            alignItems: "center",
-
-            backgroundColor: "#fff",
-
-            padding: 8,
-
-            borderRadius: 18,
-
-            position: "relative",
-          }}
-        >
-          <MaterialIcons name="shopping-cart" size={24} color="#a855f7" />
-
-          {itens.length > 0 && (
-            <View
-              style={{
-                position: "absolute",
-
-                top: -8,
-                right: -10,
-
-                backgroundColor: "#a855f7",
-
-                width: 20,
-                height: 20,
-
-                borderRadius: 10,
-
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <Text
-                style={{
-                  color: "#fff",
-
-                  fontSize: 11,
-
-                  fontWeight: "bold",
-                }}
-              >
-                {itens.length}
+        </View>
+
+        {/* ── 3. RESUMO FINANCEIRO ─────────────────────────────────────── */}
+        <View style={card}>
+          <SectionTitle icon="receipt-long" label="Resumo do Pedido" />
+
+          <ResumoRow label="Subtotal" value={`R$ ${subtotal.toFixed(2)}`} />
+          <ResumoRow
+            label="Taxa de entrega"
+            value={frete === 0 ? "Grátis 🎉" : `R$ ${frete.toFixed(2)}`}
+            valueColor={frete === 0 ? "#22c55e" : "#333"}
+          />
+          {desconto > 0 && (
+            <ResumoRow label={`Desconto (${cupom})`} value={`- R$ ${desconto.toFixed(2)}`} valueColor="#22c55e" />
+          )}
+
+          {subtotal < 50 && (
+            <View style={{
+              backgroundColor: "#f0fdf4", borderRadius: 12, padding: 12,
+              flexDirection: "row", alignItems: "center", marginVertical: 10,
+            }}>
+              <MaterialIcons name="local-shipping" size={16} color="#16a34a" />
+              <Text style={{ marginLeft: 8, color: "#16a34a", fontSize: 12, fontWeight: "600" }}>
+                Faltam R$ {(50 - subtotal).toFixed(2)} para frete grátis
               </Text>
             </View>
           )}
-        </TouchableOpacity>
 
-        {/* FAVORITOS */}
+          <View style={{
+            flexDirection: "row", justifyContent: "space-between",
+            paddingTop: 14, marginTop: 6,
+            borderTopWidth: 1.5, borderColor: "#f1d4ff",
+          }}>
+            <Text style={{ fontSize: 17, fontWeight: "bold", color: "#333" }}>Total</Text>
+            <Text style={{ fontSize: 20, fontWeight: "bold", color: "#ff69b4" }}>R$ {total.toFixed(2)}</Text>
+          </View>
 
-        <TouchableOpacity
-          style={{
-            alignItems: "center",
-          }}
-        >
-          <MaterialIcons name="favorite-border" size={24} color="#fff" />
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={irParaCheckout}
+            activeOpacity={0.8}
+            style={{ borderRadius: 18, overflow: "hidden", marginTop: 18 }}
+          >
+            <LinearGradient
+              colors={["#ff69b4", "#a855f7"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              style={{ paddingVertical: 18, alignItems: "center" }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 17 }}>
+                Ir para pagamento
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
 
-        {/* PEDIDOS */}
+      </ScrollView>
 
-        <TouchableOpacity
-          onPress={() => router.push("/(tabs)/checkout")}
-          style={{
-            alignItems: "center",
-          }}
-        >
-          <MaterialIcons name="receipt-long" size={24} color="#fff" />
-        </TouchableOpacity>
+      <BottomNav itens={itens} />
+    </LinearGradient>
+  );
+}
 
-        {/* PERFIL */}
+function SectionTitle({ icon, label }: { icon: any; label: string }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
+      <MaterialIcons name={icon} size={18} color="#a855f7" />
+      <Text style={{ fontWeight: "bold", fontSize: 16, color: "#333", marginLeft: 8 }}>{label}</Text>
+    </View>
+  );
+}
 
-        <TouchableOpacity
-          onPress={() => router.push("/(perfil)/perfil")}
-          style={{
-            alignItems: "center",
-          }}
-        >
-          <MaterialIcons name="person-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-      </LinearGradient>
+function ResumoRow({ label, value, valueColor = "#333" }: { label: string; value: string; valueColor?: string }) {
+  return (
+    <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 10 }}>
+      <Text style={{ color: "#777", fontSize: 14 }}>{label}</Text>
+      <Text style={{ color: valueColor, fontWeight: "600", fontSize: 14 }}>{value}</Text>
+    </View>
+  );
+}
+
+function BottomNav({ itens }: { itens: any[] }) {
+  return (
+    <LinearGradient
+      colors={["#ff69b4", "#a855f7"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+      style={{
+        position: "absolute", bottom: 35, left: 20, right: 20,
+        borderRadius: 28, flexDirection: "row", justifyContent: "space-around",
+        alignItems: "center", paddingVertical: 16,
+        shadowColor: "#c45ccf", shadowOpacity: 0.12, shadowRadius: 12, elevation: 10,
+      }}
+    >
+      <TouchableOpacity onPress={() => router.push("/(tabs)/home")} style={{ alignItems: "center" }}>
+        <MaterialIcons name="home" size={24} color="#fff" />
+      </TouchableOpacity>
+      <TouchableOpacity style={{ alignItems: "center", backgroundColor: "#fff", padding: 8, borderRadius: 18 }}>
+        <MaterialIcons name="shopping-cart" size={24} color="#a855f7" />
+        {itens.length > 0 && (
+          <View style={{
+            position: "absolute", top: -8, right: -10,
+            backgroundColor: "#a855f7", width: 20, height: 20,
+            borderRadius: 10, justifyContent: "center", alignItems: "center",
+          }}>
+            <Text style={{ color: "#fff", fontSize: 11, fontWeight: "bold" }}>{itens.length}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+      <TouchableOpacity style={{ alignItems: "center" }}>
+        <MaterialIcons name="favorite-border" size={24} color="#fff" />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => router.push("/(tabs)/checkout")} style={{ alignItems: "center" }}>
+        <MaterialIcons name="receipt-long" size={24} color="#fff" />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => router.push("/(perfil)/perfil")} style={{ alignItems: "center" }}>
+        <MaterialIcons name="person-outline" size={24} color="#fff" />
+      </TouchableOpacity>
     </LinearGradient>
   );
 }

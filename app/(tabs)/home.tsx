@@ -24,6 +24,7 @@ export default function HomeScreen() {
 
   function adicionarCarrinho(produto: any) {
     addItem(produto);
+    router.push("/carrinho");
   }
   return (
     <LinearGradient

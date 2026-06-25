@@ -4,7 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getPedidosCliente, Pedido } from "../../services/pedidoService";
+import { getPedidosCliente, PedidoDTO } from "../../services/pedidoService";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: keyof typeof MaterialIcons.glyphMap }> = {
   NOVO: { label: "Novo", color: "#f59e0b", icon: "schedule" },
@@ -52,34 +52,47 @@ function StatusTimeline({ status }: { status: string }) {
   );
 }
 
-function formatDate(iso: string): string {
+function formatDate(raw: any): string {
   try {
-    const d = new Date(iso);
-    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    let d: Date;
+    // Jackson serializa LocalDateTime como array [year,month,day,hour,min,sec]
+    if (Array.isArray(raw)) {
+      const [year, month, day, hour = 0, min = 0] = raw as number[];
+      d = new Date(year, month - 1, day, hour, min);
+    } else {
+      d = new Date(raw);
+    }
+    if (isNaN(d.getTime())) return String(raw);
+    return d.toLocaleDateString("pt-BR", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
+    });
   } catch {
-    return iso;
+    return String(raw);
   }
 }
 
 export default function PedidosScreen() {
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [pedidos, setPedidos] = useState<PedidoDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const userId = await AsyncStorage.getItem("userId");
-        if (!userId) throw new Error("Usuário não autenticado.");
-        const data = await getPedidosCliente(Number(userId));
-        setPedidos(data);
-      } catch (e: any) {
-        setError(e.message ?? "Erro ao carregar pedidos.");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  async function carregar() {
+    setLoading(true);
+    setError(null);
+    try {
+      const userId = await AsyncStorage.getItem("userId");
+      if (!userId) throw new Error("Usuário não autenticado.");
+      const data = await getPedidosCliente(Number(userId));
+      setPedidos(data);
+    } catch (e: any) {
+      setError(e.message ?? "Erro ao carregar pedidos.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { carregar(); }, []);
 
   return (
     <LinearGradient colors={["#fff7fc", "#f7ecff"]} style={{ flex: 1 }}>
@@ -88,8 +101,15 @@ export default function PedidosScreen() {
           <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 8 }}>
             <MaterialIcons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
-          <Text style={{ fontSize: 26, fontWeight: "bold", color: "#333" }}>Meus Pedidos 💖</Text>
-          <Text style={{ color: "#777", marginTop: 4, fontSize: 13 }}>Acompanhe seus pedidos em tempo real</Text>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <View>
+              <Text style={{ fontSize: 26, fontWeight: "bold", color: "#333" }}>Meus Pedidos 💖</Text>
+              <Text style={{ color: "#777", marginTop: 4, fontSize: 13 }}>Acompanhe seus pedidos em tempo real</Text>
+            </View>
+            <TouchableOpacity onPress={carregar} disabled={loading}>
+              <MaterialIcons name="refresh" size={26} color={loading ? "#ccc" : "#a855f7"} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={{ marginTop: 24, paddingHorizontal: 22 }}>
@@ -123,7 +143,7 @@ export default function PedidosScreen() {
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 16, fontWeight: "bold", color: "#333" }}>
-                      Pedido #{pedido.numeroPedido}
+                      {pedido.numeroPedido ? `Pedido #${pedido.numeroPedido}` : `Pedido #${pedido.id}`}
                     </Text>
                     <Text style={{ color: "#777", fontSize: 12, marginTop: 2 }}>
                       {pedido.nomeCliente}

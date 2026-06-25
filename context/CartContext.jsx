@@ -2,46 +2,47 @@ import React, {
   createContext,
   useContext,
   useState,
+  useEffect,
 } from "react";
 
 import { Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { stores } from "../data/stores";
+
+const CART_KEY = "@cart_itens";
 
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
 
   const [itens, setItens] = useState([]);
+  const [carregado, setCarregado] = useState(false);
+
+  // RESTAURAR CARRINHO AO INICIAR
+  useEffect(() => {
+    AsyncStorage.getItem(CART_KEY).then(v => {
+      if (v) {
+        try { setItens(JSON.parse(v)); } catch {}
+      }
+      setCarregado(true);
+    });
+  }, []);
+
+  // PERSISTIR CARRINHO A CADA MUDANÇA
+  useEffect(() => {
+    if (!carregado) return;
+    AsyncStorage.setItem(CART_KEY, JSON.stringify(itens));
+  }, [itens, carregado]);
 
   // ADICIONAR ITEM
 
   async function addItem(produto) {
 
-    const cidadeEntrega =
-  await AsyncStorage.getItem("cidadeEntrega");
-
-const loja = stores.find(
-  (s) => s.id === produto.lojaId
-);
-
-console.log("Cidade Cliente:", cidadeEntrega);
-console.log("Cidade Loja:", loja?.cidade);
-
-if (
-  cidadeEntrega &&
-  loja?.cidade &&
-  loja.cidade.toLowerCase() !==
-    cidadeEntrega.toLowerCase()
-) {
-
-  Alert.alert(
-    "Entrega indisponível",
-    `Esta loja não atende sua região. Entregas apenas para ${loja.cidade}.`
-  );
-
-  return;
-}
+    console.log("[CartContext] addItem recebido:", JSON.stringify({
+      id: produto.id,
+      nome: produto.nome,
+      lojaId: produto.lojaId,
+      preco: produto.preco,
+    }));
 
   // VERIFICA SE JÁ EXISTE ITEM DE OUTRA LOJA
 
@@ -114,6 +115,8 @@ if (
       quantidade: 1,
     },
   ]);
+
+  console.log("[CartContext] item adicionado. lojaId salvo:", produto.lojaId);
 }
 
   // REMOVER ITEM
@@ -186,6 +189,7 @@ if (
   function limparCarrinho() {
 
     setItens([]);
+    AsyncStorage.removeItem(CART_KEY);
   }
 
   // SUBTOTAL

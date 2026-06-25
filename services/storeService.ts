@@ -1,9 +1,9 @@
 import { apiUrl } from "../constants/api";
 import storesMock from "../mock/stores.json";
 
-// A API retorna entidade Confeiteiro com loja aninhada
 export interface LojaAPI {
-  id: number;
+  id: number;          // ID do Confeiteiro
+  lojaId?: number | null; // ID real da tabela loja
   nome: string;
   email: string;
   telefone?: string;
@@ -17,7 +17,6 @@ export interface LojaAPI {
     endereco?: string;
     status?: string;
   };
-  // Campos do mock local
   name?: string;
   description?: string;
   rating?: number;
@@ -30,10 +29,14 @@ export interface LojaAPI {
 /** Normaliza entidade Confeiteiro da API para formato usado pelos componentes */
 function normalizar(raw: any): LojaAPI {
   const loja = raw.loja ?? {};
+  const lojaId = loja.id ?? null;
+  console.log(
+    `[storeService] confeiteiro.id=${raw.id} nome=${raw.nome} loja.id=${lojaId}`
+  );
   return {
     id: raw.id,
+    lojaId,
     nome: raw.nome ?? loja.nomeFantasia ?? "",
-    // "name" é usado pelos componentes antigos
     name: loja.nomeFantasia ?? raw.nome ?? "",
     email: raw.email ?? "",
     telefone: raw.telefone ?? loja.telefone ?? "",

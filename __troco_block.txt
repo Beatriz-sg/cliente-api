@@ -1,0 +1,45 @@
+          {metodo === "DINHEIRO" && (
+            <View style={{ marginTop: 18 }}>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: "#374151", marginBottom: 8 }}>
+                Precisa de troco para quanto?
+              </Text>
+              <View style={{
+                flexDirection: "row", alignItems: "center",
+                backgroundColor: "#f9f3fb", borderRadius: 14,
+                borderWidth: 1, borderColor: "#f1d4ff", overflow: "hidden",
+              }}>
+                <View style={{
+                  paddingHorizontal: 14, paddingVertical: 12,
+                  borderRightWidth: 1, borderRightColor: "#f1d4ff",
+                  backgroundColor: "#f3e8ff",
+                }}>
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: "#a855f7" }}>R$</Text>
+                </View>
+                <TextInput
+                  value={trocoParaStr}
+                  onChangeText={v => setTrocoParaStr(v.replace(/[^0-9.,]/g, ""))}
+                  placeholder="0,00"
+                  placeholderTextColor="#bbb"
+                  keyboardType="decimal-pad"
+                  style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: "#333" }}
+                />
+              </View>
+              {trocoParaNum > 0 && trocoParaNum < total && (
+                <Text style={{ color: "#ef4444", fontSize: 12, marginTop: 6, fontWeight: "600" }}>
+                  Valor deve ser maior ou igual ao total (R$ {total.toFixed(2)}).
+                </Text>
+              )}
+              {troco > 0 && (
+                <View style={{
+                  flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+                  backgroundColor: "#f0fdf4", borderRadius: 12,
+                  paddingHorizontal: 14, paddingVertical: 10, marginTop: 10,
+                }}>
+                  <Text style={{ fontSize: 13, color: "#15803d", fontWeight: "600" }}>Troco</Text>
+                  <Text style={{ fontSize: 15, fontWeight: "800", color: "#16a34a" }}>
+                    R$ {troco.toFixed(2)}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
