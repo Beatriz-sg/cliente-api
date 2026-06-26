@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
-import { Image, Text, TouchableOpacity, View, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useState } from "react";
+import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
+import { imagemUrl } from "../../constants/api";
 import { useLocalizacaoEntrega } from "../../hooks/useLocalizacaoEntrega";
 
 export default function Header({ setCidadeEntrega: setCidadeExterna }: any) {
@@ -10,7 +11,12 @@ export default function Header({ setCidadeEntrega: setCidadeExterna }: any) {
   // Carrega foto do perfil do cache local
   useEffect(() => {
     AsyncStorage.getItem("user").then((raw) => {
-      if (raw) setProfilePhoto(JSON.parse(raw)?.fotoPerfil ?? null);
+      if (raw) {
+        const foto: string | null = JSON.parse(raw)?.fotoPerfil ?? null;
+        // imagemUrl() monta a URL completa se vier apenas o nome do arquivo;
+        // se já for uma URL completa (http...) retorna como está.
+        setProfilePhoto(foto ? (imagemUrl(foto) ?? foto) : null);
+      }
     });
   }, []);
 

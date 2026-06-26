@@ -1,16 +1,17 @@
-import Header from "../../components/home/Header";
-import Categories from "../../components/home/Categories";
-import OffersCarousel from "../../components/home/OffersCarousel";
+import { MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import { useRef, useState } from "react";
+import { ScrollView, TextInput, View } from "react-native";
 import AllStores from "../../components/home/AllStores";
 import BottomTabs from "../../components/home/BottomTabs";
-import { categories } from "../../data/categories";
-import TopRatedStores from "../../components/home/TopRatedStores";
+import Categories from "../../components/home/Categories";
+import Header from "../../components/home/Header";
 import NearbyStores from "../../components/home/NearbyStores";
-import { View, TextInput, ScrollView } from "react-native";
-import { useState, useRef } from "react";
-import { LinearGradient } from "expo-linear-gradient";
-import { MaterialIcons } from "@expo/vector-icons";
+import OffersCarousel from "../../components/home/OffersCarousel";
+import TopRatedStores from "../../components/home/TopRatedStores";
 import { useCart } from "../../context/CartContext";
+import { categories } from "../../data/categories";
 
 
 export default function HomeScreen() {

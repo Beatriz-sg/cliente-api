@@ -19,6 +19,7 @@ export interface PedidoDTO {
   total: number;                   // BigDecimal → number
   dataCriacao: string | number[];  // LocalDateTime: array Jackson [y,m,d,h,min,s] ou ISO
   itens: ItemPedidoDTO[];
+  nomeLoja?: string;               // Nome fantasia da loja (backend v2)
 }
 
 export interface ItemPedidoDTO {
@@ -41,17 +42,17 @@ export interface PedidoCriado {
 
 /** Payload POST /api/pedidos — campos conforme PedidoService.realizarPedido */
 export interface CriarPedidoPayload {
-  cliente:             { id: number };
-  loja:                { id: number };
-  formaPagamento:      string;
-  enderecoEntrega:     string;
-  observacao?:         string;
-  agendado:            boolean;
+  cliente: { id: number };
+  loja: { id: number };
+  formaPagamento: string;
+  enderecoEntrega: string;
+  observacao?: string;
+  agendado: boolean;
   dataEntregaAgendada?: string | null;
-  cupom?:              string | null;
+  cupom?: string | null;
   itens: {
-    produto:       { id: number };
-    quantidade:    number;
+    produto: { id: number };
+    quantidade: number;
     precoUnitario: number;
   }[];
 }
@@ -61,14 +62,18 @@ export interface CriarPedidoPayload {
  * Campos lidos pelo PagamentoController.java:
  *   valor (BigDecimal), tokenCartao (String|null), email (String), metodo (String)
  *
- * metodo aceito pelo MercadoPago SDK: "pix", "visa", "master", "elo", "debit_card"
+ * metodo aceito pelo MercadoPago SDK: "pix", "visa", "master", "elo", "amex",
+ *   "hipercard", "debit_card"
  * Para DINHEIRO (sem MP): metodo = "dinheiro" — retorna PENDENTE sem chamar MP.
+ * parcelas: número de parcelas para crédito (1–12). Ignorado pelo backend para
+ *   outros métodos mas incluído para rastreabilidade.
  */
 export interface ProcessarPagamentoPayload {
-  valor:       number;
+  valor: number;
   tokenCartao: string | null;
-  email:       string;
-  metodo:      string;
+  email: string;
+  metodo: string;
+  parcelas?: number;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -117,11 +122,11 @@ export async function criarPedido(payload: CriarPedidoPayload): Promise<PedidoCr
  * Nunca lança erro — falha de pagamento não cancela o pedido já salvo no banco.
  */
 export interface PagamentoResponse {
-  status:       string;
-  qrCode?:      string | null;        // copia-e-cola PIX
+  status: string;
+  qrCode?: string | null;        // copia-e-cola PIX
   qrCodeBase64?: string | null;       // imagem base64 para exibir QR
-  paymentId?:   number | null;
-  erro?:        string | null;
+  paymentId?: number | null;
+  erro?: string | null;
 }
 export async function processarPagamento(
   payload: ProcessarPagamentoPayload
@@ -155,4 +160,36 @@ export async function getPedidosCliente(clienteId: number): Promise<PedidoDTO[]>
   }
   const parsed = await res.json();
   return Array.isArray(parsed) ? parsed : [];
+}
+
+/** GET /api/pedidos/:id — usado para polling de status em tempo real */
+export async function getPedidoPorId(pedidoId: number): Promise<PedidoDTO> {
+  const token = await getToken();
+  const res = await fetch(apiUrl(`/pedidos/${pedidoId}`), {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const msg = await parseError(res, `Erro ${res.status} ao buscar pedido.`);
+    throw new Error(msg);
+  }
+  // O endpoint /pedidos/:id retorna a entidade Pedido bruta — normaliza para PedidoDTO
+  const raw = await res.json();
+  return {
+    id: raw.id,
+    numeroPedido: raw.numeroPedido ?? String(raw.id),
+    nomeCliente: raw.cliente?.nome ?? "",
+    telefoneCliente: raw.cliente?.telefone ?? "",
+    enderecoEntrega: raw.enderecoEntrega ?? "",
+    formaPagamento: raw.formaPagamento ?? "",
+    status: raw.status ?? "NOVO",
+    total: raw.valorPedido ?? 0,
+    dataCriacao: raw.dataHoraPedido ?? null,
+    itens: (raw.itens ?? []).map((it: any) => ({
+      produtoId: it.produto?.id ?? 0,
+      nomeProduto: it.produto?.nome ?? "",
+      quantidade: it.quantidade,
+      precoUnitario: it.precoUnitario,
+    })),
+    nomeLoja: raw.loja?.nomeFantasia ?? raw.confeiteiro?.nome ?? "",
+  };
 }

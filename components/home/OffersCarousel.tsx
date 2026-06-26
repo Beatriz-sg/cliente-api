@@ -10,35 +10,32 @@ import {
 } from "../../services/favoritosLocalService";
 import { getStores } from "../../services/storeService";
 
-// Percentuais de desconto fixos atribuídos por posição (simulação até o backend suportar)
-const DESCONTOS = [15, 20, 10, 25, 15, 20, 10, 15, 20, 10];
-
 interface ProdutoOferta {
-  // campos da API
   id: number;
   nome: string;
   preco: number;
+  precoPromocional: number;
   descricao: string;
   imagemUrl?: string;
   confeiteiro?: { id: number };
   disponivel?: boolean;
   estoque?: number | null;
   quantidadeEstoque?: number | null;
-  // campos resolvidos localmente
+  // resolved locally
   _lojaId: number | null;
-  _precoOriginal: number;
   _percentualDesconto: number;
-  _precoPromocional: number;
 }
 
-function calcularOferta(preco: number, percentual: number) {
-  const precoOriginal = parseFloat((preco / (1 - percentual / 100)).toFixed(2));
-  return { precoOriginal, precoPromocional: preco };
+/** Calculates the rounded % OFF badge from original and promotional prices. */
+function calcularPercentual(precoOriginal: number, precoPromocional: number): number {
+  if (!precoOriginal || precoOriginal <= 0) return 0;
+  return Math.round(((precoOriginal - precoPromocional) / precoOriginal) * 100);
 }
 
 export default function OffersCarousel({ adicionarCarrinho }: any) {
   const [favoritos, setFavoritos] = useState<number[]>([]);
   const [ofertas, setOfertas] = useState<ProdutoOferta[]>([]);
+  const [carregado, setCarregado] = useState(false);
 
   useEffect(() => {
     carregarFavoritos();
@@ -51,37 +48,52 @@ export default function OffersCarousel({ adicionarCarrinho }: any) {
         fetch(apiUrl("/produtos")),
         getStores(),
       ]);
-      if (!res.ok) return;
+      if (!res.ok) {
+        setCarregado(true);
+        return;
+      }
       const data: any[] = await res.json();
 
-      // Exclui produtos com disponivel=false ou estoque<=0, depois limita a 10
       const enriched: ProdutoOferta[] = data
         .filter((p: any) => {
+          // Must be flagged as on offer with a valid promotional price
+          if (!p.emOferta) return false;
           if (p.disponivel === false || p.ativo === false) return false;
           const estoque = p.estoque ?? p.quantidadeEstoque ?? null;
           if (estoque !== null && Number(estoque) <= 0) return false;
+          const precoPromo = Number(p.precoPromocional);
+          if (!precoPromo || precoPromo <= 0) return false;
           return true;
         })
-        .slice(0, 10)
-        .map((p: any, idx: number) => {
-          const confeiteiroId = p.confeiteiro?.id ?? null;
-          const lojaObj = lojas.find((l) => l.id === confeiteiroId);
-          const lojaId = lojaObj?.lojaId ?? lojaObj?.loja?.id ?? null;
-          const percentual = DESCONTOS[idx % DESCONTOS.length];
-          const preco = Number(p.preco);
-          const { precoOriginal, precoPromocional } = calcularOferta(preco, percentual);
+        .map((p: any) => {
+          // Priority 1: product already carries loja.id directly
+          // Priority 2: top-level confeiteiroId now returned by backend
+          // Priority 3: nested confeiteiro.id (legacy fallback)
+          const lojaIdDireto: number | null = p.loja?.id ?? null;
+          let lojaId: number | null = lojaIdDireto;
+          if (!lojaId) {
+            const confeiteiroId = p.confeiteiroId ?? p.confeiteiro?.id ?? null;
+            const lojaObj = lojas.find((l) => l.id === confeiteiroId);
+            lojaId = lojaObj?.lojaId ?? lojaObj?.loja?.id ?? null;
+          }
+          const precoOriginal = Number(p.preco);
+          const precoPromocional = Number(p.precoPromocional);
+          const percentual = calcularPercentual(precoOriginal, precoPromocional);
+
           return {
             ...p,
+            preco: precoOriginal,
+            precoPromocional,
             _lojaId: lojaId,
-            _precoOriginal: precoOriginal,
             _percentualDesconto: percentual,
-            _precoPromocional: precoPromocional,
           };
         });
 
       setOfertas(enriched);
     } catch {
       setOfertas([]);
+    } finally {
+      setCarregado(true);
     }
   }
 
@@ -94,7 +106,7 @@ export default function OffersCarousel({ adicionarCarrinho }: any) {
     await toggleProdutoFavorito({
       id: produto.id,
       nome: produto.nome,
-      preco: produto._precoPromocional,
+      preco: produto.precoPromocional,
       descricao: produto.descricao,
       fotoUrl: imagemUrl(produto.imagemUrl) ?? "",
     });
@@ -102,7 +114,6 @@ export default function OffersCarousel({ adicionarCarrinho }: any) {
   }
 
   function handleAdicionar(produto: ProdutoOferta, fotoUri: string | null) {
-    // Mesma lógica de loja.tsx
     const lojaIdReal = produto._lojaId;
     if (!lojaIdReal) {
       Alert.alert(
@@ -111,16 +122,16 @@ export default function OffersCarousel({ adicionarCarrinho }: any) {
       );
       return;
     }
-    // Passa precoPromocional como preco para o carrinho usar o valor certo no checkout
     adicionarCarrinho?.({
       ...produto,
-      preco: produto._precoPromocional,
+      preco: produto.precoPromocional,
       lojaId: lojaIdReal,
       imagem: fotoUri ?? imagemUrl(produto.imagemUrl),
     });
   }
 
-  if (ofertas.length === 0) return null;
+  // Don't render the section at all while loading
+  if (!carregado) return null;
 
   return (
     <View style={{ marginTop: 28 }}>
@@ -135,107 +146,131 @@ export default function OffersCarousel({ adicionarCarrinho }: any) {
         </View>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingLeft: 18, paddingRight: 4 }}
-      >
-        {ofertas.map((produto) => {
-          const favorito = favoritos.includes(produto.id);
-          const fotoUri = imagemUrl(produto.imagemUrl);
+      {ofertas.length === 0 ? (
+        <View style={{ paddingHorizontal: 18, paddingVertical: 20, alignItems: "center" }}>
+          <Text style={{ color: "#aaa", fontSize: 14 }}>
+            Nenhuma oferta disponível no momento.
+          </Text>
+        </View>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingLeft: 18, paddingRight: 4 }}
+        >
+          {ofertas.map((produto) => {
+            const favorito = favoritos.includes(produto.id);
+            const fotoUri = imagemUrl(produto.imagemUrl);
 
-          return (
-            <TouchableOpacity
-              key={produto.id}
-              activeOpacity={0.85}
-              onPress={() => {
-                if (produto.confeiteiro?.id) {
-                  router.push({ pathname: "/loja", params: { lojaId: produto.confeiteiro.id } });
-                }
-              }}
-              style={{
-                width: 170,
-                backgroundColor: "#fff",
-                borderRadius: 20,
-                marginRight: 14,
-                overflow: "hidden",
-              }}
-            >
-              {/* Badge de desconto */}
-              <View style={{
-                position: "absolute", top: 10, left: 10, zIndex: 99,
-                backgroundColor: "#ec4899", borderRadius: 8,
-                paddingHorizontal: 7, paddingVertical: 3,
-              }}>
-                <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 11 }}>
-                  -{produto._percentualDesconto}%
-                </Text>
-              </View>
-
-              {/* Favorito */}
+            return (
               <TouchableOpacity
-                onPress={() => toggleFavorito(produto)}
-                style={{ position: "absolute", top: 10, right: 10, zIndex: 99 }}
+                key={produto.id}
+                activeOpacity={0.85}
+                onPress={() => {
+                  if (produto.confeiteiro?.id) {
+                    router.push({ pathname: "/loja", params: { lojaId: produto.confeiteiro.id } });
+                  }
+                }}
+                style={{
+                  width: 170,
+                  backgroundColor: "#fff",
+                  borderRadius: 20,
+                  marginRight: 14,
+                  overflow: "hidden",
+                }}
               >
-                <Text style={{ fontSize: 18, color: favorito ? "#ff4d8d" : "#fff" }}>
-                  {favorito ? "♥" : "♡"}
-                </Text>
-              </TouchableOpacity>
+                {/* Discount badge — only shown when there is a real % */}
+                {produto._percentualDesconto > 0 && (
+                  <View style={{
+                    position: "absolute", top: 10, left: 10, zIndex: 99,
+                    backgroundColor: "#ec4899", borderRadius: 8,
+                    paddingHorizontal: 7, paddingVertical: 3,
+                  }}>
+                    <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 11 }}>
+                      -{produto._percentualDesconto}%
+                    </Text>
+                  </View>
+                )}
 
-              {/* Imagem */}
-              {fotoUri ? (
-                <Image source={{ uri: fotoUri }} style={{ width: "100%", height: 120, resizeMode: "cover" }} />
-              ) : (
-                <View style={{
-                  width: "100%", height: 120, backgroundColor: "#fce7f3",
-                  justifyContent: "center", alignItems: "center",
-                }}>
-                  <MaterialIcons name="cake" size={40} color="#ff69b4" />
-                </View>
-              )}
-
-              <View style={{ padding: 12 }}>
-                <Text numberOfLines={1} style={{ fontSize: 14, fontWeight: "bold", color: "#333" }}>
-                  {produto.nome}
-                </Text>
-                <Text numberOfLines={2} style={{ marginTop: 3, color: "#888", fontSize: 11, lineHeight: 15 }}>
-                  {produto.descricao}
-                </Text>
-
-                {/* Preços */}
-                <View style={{ marginTop: 8, flexDirection: "row", alignItems: "flex-end", gap: 6 }}>
-                  <Text style={{ color: "#bbb", fontSize: 11, textDecorationLine: "line-through" }}>
-                    R$ {produto._precoOriginal.toFixed(2)}
+                {/* Favourite */}
+                <TouchableOpacity
+                  onPress={() => toggleFavorito(produto)}
+                  style={{ position: "absolute", top: 10, right: 10, zIndex: 99 }}
+                >
+                  <Text style={{ fontSize: 18, color: favorito ? "#ff4d8d" : "#fff" }}>
+                    {favorito ? "♥" : "♡"}
                   </Text>
-                  <Text style={{ fontSize: 16, fontWeight: "bold", color: "#ec4899" }}>
-                    R$ {produto._precoPromocional.toFixed(2)}
-                  </Text>
-                </View>
+                </TouchableOpacity>
 
-                {/* Botões */}
-                <View style={{ marginTop: 10 }}>
-                  <TouchableOpacity
-                    onPress={() => handleAdicionar(produto, fotoUri)}
-                    activeOpacity={0.85}
-                    style={{ borderRadius: 12, overflow: "hidden" }}
-                  >
-                    <LinearGradient
-                      colors={["#f9a8d4", "#ec4899", "#9333ea"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={{ height: 36, justifyContent: "center", alignItems: "center" }}
+                {/* Image */}
+                {fotoUri ? (
+                  <Image source={{ uri: fotoUri }} style={{ width: "100%", height: 120, resizeMode: "cover" }} />
+                ) : (
+                  <View style={{
+                    width: "100%", height: 120, backgroundColor: "#fce7f3",
+                    justifyContent: "center", alignItems: "center",
+                  }}>
+                    <MaterialIcons name="cake" size={40} color="#ff69b4" />
+                  </View>
+                )}
+
+                <View style={{ padding: 12 }}>
+                  <Text numberOfLines={1} style={{ fontSize: 14, fontWeight: "bold", color: "#333" }}>
+                    {produto.nome}
+                  </Text>
+                  <Text numberOfLines={2} style={{ marginTop: 3, color: "#888", fontSize: 11, lineHeight: 15 }}>
+                    {produto.descricao}
+                  </Text>
+
+                  {/* Prices */}
+                  <View style={{ marginTop: 8 }}>
+                    <Text
+                      style={{
+                        color: "#9ca3af",
+                        fontSize: 11,
+                        textDecorationLine: "line-through",
+                        marginBottom: 2,
+                      }}
                     >
-                      <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 13 }}>
-                        Adicionar
-                      </Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
+                      R$ {produto.preco.toFixed(2)}
+                    </Text>
+
+                    <Text
+                      style={{
+                        fontSize: 20,
+                        fontWeight: "bold",
+                        color: "#ec4899",
+                      }}
+                    >
+                      R$ {produto.precoPromocional.toFixed(2)}
+                    </Text>
+                  </View>
+
+                  {/* Add to cart button */}
+                  <View style={{ marginTop: 10 }}>
+                    <TouchableOpacity
+                      onPress={() => handleAdicionar(produto, fotoUri)}
+                      activeOpacity={0.85}
+                      style={{ borderRadius: 12, overflow: "hidden" }}
+                    >
+                      <LinearGradient
+                        colors={["#f9a8d4", "#ec4899", "#9333ea"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={{ height: 36, justifyContent: "center", alignItems: "center" }}
+                      >
+                        <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 13 }}>
+                          Adicionar
+                        </Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
     </View>
   );
 }

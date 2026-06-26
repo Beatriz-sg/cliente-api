@@ -85,6 +85,20 @@ export async function login(data: LoginPayload) {
     if (user.id) await AsyncStorage.setItem("userId", String(user.id));
     if (user.nome) await AsyncStorage.setItem("userName", user.nome);
     if (user.email) await AsyncStorage.setItem("userEmail", user.email);
+
+    // Busca o perfil completo (inclui fotoPerfil) e sobrescreve o cache
+    // para que Header.tsx e UsuarioContext leiam fotoPerfil imediatamente.
+    try {
+      const token = json?.token;
+      const perfilRes = await fetch(
+        apiUrl("/cliente/perfil"),
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (perfilRes.ok) {
+        const perfilCompleto = await perfilRes.json();
+        await AsyncStorage.setItem("user", JSON.stringify(perfilCompleto));
+      }
+    } catch { /* falha silenciosa — user básico já está salvo */ }
   }
 
   return json;

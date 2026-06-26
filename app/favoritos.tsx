@@ -1,15 +1,15 @@
+import { MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Image,
+  ScrollView,
   Text,
   TouchableOpacity,
-  ScrollView,
-  Image,
-  ActivityIndicator,
+  View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { MaterialIcons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import {
   getLojasFavoritas,
   getProdutosFavoritos,
@@ -210,38 +210,38 @@ export default function FavoritosScreen() {
                   elevation: 3,
                 }}
               >
-                
+
                 {typeof loja.fotoUrl === "string" &&
- loja.fotoUrl.startsWith("http") ? (
-  <Image
-    source={{ uri: loja.fotoUrl }}
-    style={{
-      width: 56,
-      height: 56,
-      borderRadius: 14,
-      marginRight: 12,
-    }}
-  />
-) : (
-  <View
-    style={{
-      width: 56,
-      height: 56,
-      borderRadius: 14,
-      marginRight: 12,
-      backgroundColor: "#f3e8ff",
-      justifyContent: "center",
-      alignItems: "center",
-    }}
-  >
-    <MaterialIcons
-      name="store"
-      size={28}
-      color="#a855f7"
-    />
-  </View>
-)}
-               
+                  loja.fotoUrl.startsWith("http") ? (
+                  <Image
+                    source={{ uri: loja.fotoUrl }}
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: 14,
+                      marginRight: 12,
+                    }}
+                  />
+                ) : (
+                  <View
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: 14,
+                      marginRight: 12,
+                      backgroundColor: "#f3e8ff",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    <MaterialIcons
+                      name="store"
+                      size={28}
+                      color="#a855f7"
+                    />
+                  </View>
+                )}
+
                 <View style={{ flex: 1 }}>
                   <Text
                     style={{ fontWeight: "bold", color: "#333", fontSize: 15 }}
@@ -282,6 +282,7 @@ export default function FavoritosScreen() {
               >
                 {produto.fotoUrl ? (
                   <Image
+                    source={{ uri: produto.fotoUrl }}
                     style={{
                       width: 56,
                       height: 56,

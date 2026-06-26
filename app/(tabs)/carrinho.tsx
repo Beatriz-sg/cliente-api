@@ -1,11 +1,12 @@
+import { MaterialIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Alert, Image, ScrollView, Text, TextInput,
   TouchableOpacity, View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { MaterialIcons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import { useCart } from "../../context/CartContext";
 import { calcularFreteGratis } from "../../services/freteService";
 
@@ -38,10 +39,19 @@ const inputSt = {
 export default function CarrinhoScreen() {
   const { itens, removerItem, aumentarQuantidade, diminuirQuantidade, subtotal } = useCart() as any;
 
-  const [cupom,    setCupom]    = useState("");
+  const [cupom, setCupom] = useState("");
   const [desconto, setDesconto] = useState(0);
+  const [modoEntrega, setModoEntrega] = useState<"entrega" | "retirada">("entrega");
 
-  const frete = calcularFreteGratis(subtotal, DISTANCIA_KM);
+  // Lê o modo de entrega salvo pela tela da loja
+  useEffect(() => {
+    AsyncStorage.getItem("modo_entrega").then((v) => {
+      if (v === "entrega" || v === "retirada") setModoEntrega(v);
+    });
+  }, []);
+
+  const freteCalculado = calcularFreteGratis(subtotal, DISTANCIA_KM);
+  const frete = modoEntrega === "retirada" ? 0 : freteCalculado;
   const total = subtotal + frete - desconto;
 
   useEffect(() => {
@@ -89,6 +99,7 @@ export default function CarrinhoScreen() {
     router.push({
       pathname: "/(tabs)/checkout",
       params: {
+        modoEntrega,
         cupomCodigo: cupom,
         descontoValor: String(desconto),
         freteValor: String(frete),
@@ -241,7 +252,62 @@ export default function CarrinhoScreen() {
           </View>
         </View>
 
-        {/* ── 3. RESUMO FINANCEIRO ─────────────────────────────────────── */}
+        {/* ── 3. MODO DE ENTREGA ───────────────────────────────────────── */}
+        <View style={card}>
+          <SectionTitle icon="local-shipping" label="Como deseja receber?" />
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            {(["entrega", "retirada"] as const).map((modo) => {
+              const ativo = modoEntrega === modo;
+              return (
+                <TouchableOpacity
+                  key={modo}
+                  onPress={() => setModoEntrega(modo)}
+                  activeOpacity={0.8}
+                  style={{
+                    flex: 1,
+                    borderRadius: 16,
+                    padding: 14,
+                    alignItems: "center",
+                    backgroundColor: ativo ? "#f3e8ff" : "#f9f3fb",
+                    borderWidth: 1.5,
+                    borderColor: ativo ? "#a855f7" : "#f1d4ff",
+                  }}
+                >
+                  <MaterialIcons
+                    name={modo === "retirada" ? "storefront" : "delivery-dining"}
+                    size={24}
+                    color={ativo ? "#a855f7" : "#aaa"}
+                  />
+                  <Text style={{ marginTop: 6, fontWeight: "700", fontSize: 13, color: ativo ? "#a855f7" : "#777" }}>
+                    {modo === "retirada" ? "Retirar na loja" : "Entrega"}
+                  </Text>
+                  {ativo && (
+                    <View style={{
+                      position: "absolute", top: 8, right: 8,
+                      backgroundColor: "#a855f7", borderRadius: 10,
+                      width: 18, height: 18, justifyContent: "center", alignItems: "center",
+                    }}>
+                      <MaterialIcons name="check" size={12} color="#fff" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {modoEntrega === "retirada" && (
+            <View style={{
+              marginTop: 12, backgroundColor: "#f0fdf4", borderRadius: 12,
+              padding: 12, flexDirection: "row", alignItems: "center", gap: 8,
+            }}>
+              <MaterialIcons name="storefront" size={16} color="#16a34a" />
+              <Text style={{ color: "#15803d", fontSize: 13, fontWeight: "600" }}>
+                Frete grátis — retire na confeitaria
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* ── 4. RESUMO FINANCEIRO ─────────────────────────────────────── */}
         <View style={card}>
           <SectionTitle icon="receipt-long" label="Resumo do Pedido" />
 
@@ -343,10 +409,10 @@ function BottomNav({ itens }: { itens: any[] }) {
           </View>
         )}
       </TouchableOpacity>
-      <TouchableOpacity style={{ alignItems: "center" }}>
+      <TouchableOpacity onPress={() => router.push("/favoritos")} style={{ alignItems: "center" }}>
         <MaterialIcons name="favorite-border" size={24} color="#fff" />
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => router.push("/(tabs)/checkout")} style={{ alignItems: "center" }}>
+      <TouchableOpacity onPress={() => router.push("/(pedidos)/pedidos")} style={{ alignItems: "center" }}>
         <MaterialIcons name="receipt-long" size={24} color="#fff" />
       </TouchableOpacity>
       <TouchableOpacity onPress={() => router.push("/(perfil)/perfil")} style={{ alignItems: "center" }}>

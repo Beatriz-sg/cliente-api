@@ -70,31 +70,31 @@ function toStringArray(value: any): string[] {
 
 function normalizar(raw: any): ClientePerfil {
   const preferencias = toStringArray(raw.preferencias);
-  const restricoes   = toStringArray(raw.restricoes);
+  const restricoes = toStringArray(raw.restricoes);
 
   if (__DEV__) {
     console.log("[perfilService] raw.preferencias:", JSON.stringify(raw.preferencias));
-    console.log("[perfilService] raw.restricoes:",   JSON.stringify(raw.restricoes));
+    console.log("[perfilService] raw.restricoes:", JSON.stringify(raw.restricoes));
     console.log("[perfilService] normalizado preferencias:", preferencias);
-    console.log("[perfilService] normalizado restricoes:",   restricoes);
+    console.log("[perfilService] normalizado restricoes:", restricoes);
   }
 
   return {
-    id:             raw.id,
-    nome:           raw.nome ?? "",
-    apelido:        raw.apelido ?? undefined,
-    cpf:            raw.cpf ?? raw.documento ?? "",
+    id: raw.id,
+    nome: raw.nome ?? "",
+    apelido: raw.apelido ?? undefined,
+    cpf: raw.cpf ?? raw.documento ?? "",
     dataNascimento: raw.dataNascimento ?? raw.data_nascimento ?? undefined,
-    email:          raw.email ?? "",
-    telefone:       raw.telefone ?? undefined,
-    cep:            raw.cep ?? undefined,
-    logradouro:     raw.logradouro ?? raw.endereco ?? undefined,
-    numero:         raw.numero ?? undefined,
-    complemento:    raw.complemento ?? undefined,
-    bairro:         raw.bairro ?? undefined,
-    cidade:         raw.cidade ?? undefined,
-    estado:         raw.estado ?? raw.uf ?? undefined,
-    fotoPerfil:     raw.fotoPerfil ? imagemUrl(raw.fotoPerfil) ?? undefined : undefined,
+    email: raw.email ?? "",
+    telefone: raw.telefone ?? undefined,
+    cep: raw.cep ?? undefined,
+    logradouro: raw.logradouro ?? raw.endereco ?? undefined,
+    numero: raw.numero ?? undefined,
+    complemento: raw.complemento ?? undefined,
+    bairro: raw.bairro ?? undefined,
+    cidade: raw.cidade ?? undefined,
+    estado: raw.estado ?? raw.uf ?? undefined,
+    fotoPerfil: raw.fotoPerfil ? imagemUrl(raw.fotoPerfil) ?? undefined : undefined,
     preferencias,
     restricoes,
   };
@@ -125,20 +125,21 @@ export async function atualizarPerfil(data: AtualizarPerfilPayload): Promise<Cli
   const headers = await authHeaders();
 
   const payload: Record<string, any> = {
-    nome:           data.nome,
-    apelido:        data.apelido,
-    email:          data.email,
-    telefone:       data.telefone,
+    nome: data.nome,
+    apelido: data.apelido,
+    email: data.email,
+    telefone: data.telefone,
     dataNascimento: data.dataNascimento,
-    cep:            data.cep,
-    logradouro:     data.logradouro,
-    numero:         data.numero,
-    complemento:    data.complemento,
-    bairro:         data.bairro,
-    cidade:         data.cidade,
-    estado:         data.estado,
-    preferencias:   data.preferencias ?? [],
-    restricoes:     data.restricoes   ?? [],
+    cep: data.cep,
+    logradouro: data.logradouro,
+    numero: data.numero,
+    complemento: data.complemento,
+    bairro: data.bairro,
+    cidade: data.cidade,
+    estado: data.estado,
+    fotoPerfil: data.fotoPerfil,
+    preferencias: data.preferencias ?? [],
+    restricoes: data.restricoes ?? [],
   };
 
   const res = await fetch(apiUrl("/cliente/perfil"), {
@@ -212,9 +213,9 @@ export async function buscarCep(cep: string): Promise<{
     if (data.erro) return null;
     return {
       logradouro: data.logradouro ?? "",
-      bairro:     data.bairro     ?? "",
-      cidade:     data.localidade ?? "",
-      estado:     data.uf         ?? "",
+      bairro: data.bairro ?? "",
+      cidade: data.localidade ?? "",
+      estado: data.uf ?? "",
     };
   } catch {
     return null;
