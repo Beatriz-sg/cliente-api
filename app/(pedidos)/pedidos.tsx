@@ -22,6 +22,7 @@ type StatusKey =
   | "NOVO"
   | "AGENDADO"
   | "PREPARANDO"
+  | "PRONTO_PARA_RETIRADA"
   | "SAIU_PARA_ENTREGA"
   | "ENTREGUE"
   | "CONCLUIDO"
@@ -34,6 +35,12 @@ const STATUS_CONFIG: Record<
   NOVO: { label: "Pedido recebido", color: "#f59e0b", icon: "receipt-long", desc: "Aguardando confirmação da confeitaria" },
   AGENDADO: { label: "Agendado", color: "#6366f1", icon: "event", desc: "Pedido agendado para entrega futura" },
   PREPARANDO: { label: "Em preparo", color: "#a855f7", icon: "restaurant", desc: "A confeitaria está preparando seu pedido" },
+  PRONTO_PARA_RETIRADA: {
+    label: "Pronto para retirada",
+    color: "#20c997",
+    icon: "store",
+    desc: "Seu pedido está pronto para retirada na loja."
+  },
   SAIU_PARA_ENTREGA: { label: "Saiu para entrega", color: "#3b82f6", icon: "delivery-dining", desc: "Seu pedido está a caminho!" },
   ENTREGUE: { label: "Entregue", color: "#22c55e", icon: "check-circle", desc: "Pedido entregue com sucesso 🎉" },
   CONCLUIDO: { label: "Concluído", color: "#22c55e", icon: "check-circle", desc: "Pedido concluído" },
@@ -49,7 +56,7 @@ const TIMELINE_STEPS: StatusKey[] = [
 ];
 
 // Statuses considerados "em andamento" — recebem polling automático
-const STATUS_ATIVOS: StatusKey[] = ["NOVO", "AGENDADO", "PREPARANDO", "SAIU_PARA_ENTREGA"];
+const STATUS_ATIVOS: StatusKey[] = ["NOVO", "AGENDADO", "PREPARANDO", "PRONTO_PARA_RETIRADA", "SAIU_PARA_ENTREGA"];
 
 const POLL_INTERVAL_MS = 15_000; // 15 s
 
@@ -98,6 +105,21 @@ function cfgFor(status: string) {
 // ─── Componente de timeline iFood ─────────────────────────────────────────────
 
 function StatusTimeline({ status }: { status: string }) {
+  if (status === "PRONTO_PARA_RETIRADA") {
+    return (
+      <View style={{
+        flexDirection: "row", alignItems: "center", marginTop: 16,
+        backgroundColor: "#20c99720", borderRadius: 12, padding: 14,
+        borderWidth: 1, borderColor: "#20c99740",
+      }}>
+        <MaterialIcons name="store" size={24} color="#20c997" />
+        <Text style={{ marginLeft: 10, color: "#20c997", fontWeight: "700", fontSize: 13, flex: 1 }}>
+          📦 Seu pedido está pronto para retirada na loja.
+        </Text>
+      </View>
+    );
+  }
+
   if (status === "CANCELADO") {
     return (
       <View style={{
@@ -245,7 +267,7 @@ function PedidoCard({
           </View>
           <View style={{ alignItems: "flex-end" }}>
             <Text style={{ fontSize: 17, fontWeight: "800", color: "#ff69b4" }}>
-              R$ {Number(pedido.total).toFixed(2)}
+              R$ {Number(pedido.valorPedido ?? 0).toFixed(2)}
             </Text>
             {/* Badge de status */}
             <View style={{
@@ -312,7 +334,7 @@ function PedidoCard({
                 }}>
                   <Text style={{ color: "#374151", fontWeight: "700", fontSize: 13 }}>Total</Text>
                   <Text style={{ color: "#ff69b4", fontWeight: "800", fontSize: 14 }}>
-                    R$ {Number(pedido.total).toFixed(2)}
+                    R$ {Number(pedido.valorPedido ?? 0).toFixed(2)}
                   </Text>
                 </View>
               </View>

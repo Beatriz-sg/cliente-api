@@ -45,7 +45,7 @@ export default function LoginScreen() {
               shadowColor: "#c45ccf",
               shadowOpacity: 0.25,
               shadowRadius: 12,
-           
+
             }}
           />
         </View>
@@ -171,117 +171,13 @@ export default function LoginScreen() {
             </Text>
           </TouchableOpacity>
 
-          {/* ACESSAR COM */}
-
-          <Text
+          <TouchableOpacity
+            onPress={() => router.push("/(tabs)/home")}
+            activeOpacity={0.8}
             style={{
-              textAlign: "center",
-
-              color: "#999",
-
-              marginTop: 28,
-
-              marginBottom: 22,
-
-              fontSize: 14,
+              marginTop: 16,
             }}
-          >
-            Acessar com
-          </Text>
-
-          {/* GOOGLE / FACEBOOK */}
-
-          <View
-            style={{
-              flexDirection: "row",
-
-              justifyContent: "center",
-
-              marginBottom: 30,
-            }}
-          >
-            {/* GOOGLE */}
-
-            <TouchableOpacity
-              onPress={() => alert("Login Google em breve")}
-              activeOpacity={0.8}
-              style={{
-                width: 54,
-                height: 54,
-
-                borderRadius: 30,
-
-                backgroundColor: "#fff",
-
-                justifyContent: "center",
-                alignItems: "center",
-
-                marginHorizontal: 10,
-
-                borderWidth: 1,
-                borderColor: "#eee",
-
-                shadowColor: "#000",
-
-                shadowOpacity: 0.05,
-
-                shadowRadius: 5,
-
-                elevation: 2,
-              }}
-            >
-              <Image
-                source={require("../../assets/images/google.png")}
-                style={{
-                  width: 24,
-                  height: 24,
-
-                  resizeMode: "contain",
-                }}
-              />
-            </TouchableOpacity>
-
-            {/* FACEBOOK */}
-
-            <TouchableOpacity
-              onPress={() => alert("Login Facebook em breve")}
-              activeOpacity={0.8}
-              style={{
-                width: 54,
-                height: 54,
-
-                borderRadius: 30,
-
-                backgroundColor: "#fff",
-
-                justifyContent: "center",
-                alignItems: "center",
-
-                marginHorizontal: 10,
-
-                borderWidth: 1,
-                borderColor: "#eee",
-
-                shadowColor: "#000",
-
-                shadowOpacity: 0.05,
-
-                shadowRadius: 5,
-
-                elevation: 2,
-              }}
-            >
-              <Image
-                source={require("../../assets/images/facebook.png")}
-                style={{
-                  width: 24,
-                  height: 24,
-
-                  resizeMode: "contain",
-                }}
-              />
-            </TouchableOpacity>
-          </View>
+          ></TouchableOpacity>
 
           {/* VISITANTE */}
 

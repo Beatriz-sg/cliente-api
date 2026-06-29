@@ -1,16 +1,17 @@
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  Image,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
+  View,
 } from "react-native";
 
 import { LinearGradient } from "expo-linear-gradient";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { useState } from "react";
 import { login } from "../../services/authService";
@@ -28,6 +29,24 @@ export default function EntrarScreen() {
     setLoading(true);
     try {
       await login({ email, senha });
+      // If the user was redirected here from a guest checkout attempt,
+      // go back to checkout so they can complete the purchase.
+      const pendente = await AsyncStorage.getItem("checkout_pendente");
+      if (pendente) {
+        try {
+          const saved = JSON.parse(pendente);
+          router.replace({
+            pathname: "/(tabs)/checkout",
+            params: {
+              modoEntrega: saved.modoEntrega ?? "entrega",
+              cupomCodigo: saved.cupomCodigo ?? "",
+              descontoValor: saved.descontoValor ?? "0",
+              freteValor: saved.freteValor ?? "0",
+            },
+          });
+          return;
+        } catch { /* fallthrough to home */ }
+      }
       router.replace("/(tabs)/home");
     } catch (e: any) {
       Alert.alert("Erro", e.message);
@@ -80,7 +99,7 @@ export default function EntrarScreen() {
               shadowColor: "#c45ccf",
               shadowOpacity: 0.25,
               shadowRadius: 12,
-             
+
             }}
           />
 

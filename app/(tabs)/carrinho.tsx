@@ -261,7 +261,10 @@ export default function CarrinhoScreen() {
               return (
                 <TouchableOpacity
                   key={modo}
-                  onPress={() => setModoEntrega(modo)}
+                  onPress={() => {
+                    setModoEntrega(modo);
+                    AsyncStorage.setItem("modo_entrega", modo);
+                  }}
                   activeOpacity={0.8}
                   style={{
                     flex: 1,

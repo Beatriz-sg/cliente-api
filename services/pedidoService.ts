@@ -6,7 +6,7 @@ import { getToken } from "./authService";
 /**
  * GET /api/pedidos/cliente/:id → PedidoDTO.java
  * Campos: id, numeroPedido, nomeCliente, telefoneCliente, enderecoEntrega,
- *         formaPagamento, status, total, dataCriacao, itens
+ *         formaPagamento, status, valorPedido, dataCriacao, itens
  */
 export interface PedidoDTO {
   id: number;
@@ -16,7 +16,7 @@ export interface PedidoDTO {
   enderecoEntrega: string;
   formaPagamento: string;
   status: string;
-  total: number;                   // BigDecimal → number
+  valorPedido: number;             // BigDecimal → number (field name matches backend PedidoDTO)
   dataCriacao: string | number[];  // LocalDateTime: array Jackson [y,m,d,h,min,s] ou ISO
   itens: ItemPedidoDTO[];
   nomeLoja?: string;               // Nome fantasia da loja (backend v2)
@@ -44,6 +44,7 @@ export interface PedidoCriado {
 export interface CriarPedidoPayload {
   cliente: { id: number };
   loja: { id: number };
+  tipoEntrega: "ENTREGA" | "RETIRADA";
   formaPagamento: string;
   enderecoEntrega: string;
   observacao?: string;
@@ -102,6 +103,8 @@ async function parseError(res: Response, fallback: string): Promise<string> {
 /** POST /api/pedidos */
 export async function criarPedido(payload: CriarPedidoPayload): Promise<PedidoCriado> {
   const headers = await authHeaders();
+  // Diagnostic: confirm tipoEntrega reaches fetch
+  console.log("[pedidoService] criarPedido payload:", JSON.stringify(payload, null, 2));
   const res = await fetch(apiUrl("/pedidos"), {
     method: "POST",
     headers,
@@ -182,7 +185,7 @@ export async function getPedidoPorId(pedidoId: number): Promise<PedidoDTO> {
     enderecoEntrega: raw.enderecoEntrega ?? "",
     formaPagamento: raw.formaPagamento ?? "",
     status: raw.status ?? "NOVO",
-    total: raw.valorPedido ?? 0,
+    valorPedido: raw.valorPedido ?? 0,
     dataCriacao: raw.dataHoraPedido ?? null,
     itens: (raw.itens ?? []).map((it: any) => ({
       produtoId: it.produto?.id ?? 0,

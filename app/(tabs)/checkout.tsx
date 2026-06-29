@@ -321,11 +321,42 @@ export default function CheckoutScreen() {
         if (v === "entrega" || v === "retirada") setModoEntrega(v);
       });
     }
+    // Restore checkout state saved before guest login redirect
+    AsyncStorage.getItem("checkout_pendente").then((raw) => {
+      if (!raw) return;
+      try {
+        const saved = JSON.parse(raw);
+        if (saved.metodo) setMetodo(saved.metodo);
+        if (saved.obsGeral) setObsGeral(saved.obsGeral);
+      } catch { /* ignore */ }
+      // consumed — remove so it doesn't restore on subsequent visits
+      AsyncStorage.removeItem("checkout_pendente");
+    });
     console.log("[Checkout] params:", JSON.stringify(params));
   }, []);
 
   const agendado = agendamento !== null;
   const dataAgend = agendamento?.dataHora ?? "";
+
+  /**
+   * Converts the display format used by the scheduling screen
+   * ("DD/MM/YYYY HH,mm" or "DD/MM/YYYY HH:mm") to ISO-8601
+   * LocalDateTime ("YYYY-MM-DDTHH:mm:00") expected by the backend.
+   * Returns the original string unchanged if it already looks like ISO.
+   */
+  function toIsoDateTime(display: string): string {
+    if (!display) return display;
+    // Already ISO — passthrough
+    if (/^\d{4}-\d{2}-\d{2}T/.test(display)) return display;
+    // Expected formats: "29/06/2026 10,00" or "29/06/2026 10:00"
+    const [datePart, timePart] = display.split(" ");
+    if (!datePart || !timePart) return display;
+    const [day, month, year] = datePart.split("/");
+    const normalizedTime = timePart.replace(",", ":"); // handle comma separator
+    const [hours, minutes] = normalizedTime.split(":");
+    if (!year || !month || !day || !hours) return display;
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T${hours.padStart(2, "0")}:${(minutes ?? "00").padStart(2, "0")}:00`;
+  }
 
   // Endereço
   const {
@@ -421,24 +452,61 @@ export default function CheckoutScreen() {
     try {
       const userIdRaw = await AsyncStorage.getItem("userId");
       const userId = Number(userIdRaw ?? 0);
-      if (!userId) throw new Error("Usuário não autenticado. Faça login novamente.");
+
+      if (!userId) {
+        // Save checkout state so we can restore it after login
+        await AsyncStorage.setItem(
+          "checkout_pendente",
+          JSON.stringify({
+            modoEntrega,
+            cupomCodigo: cupomParam,
+            descontoValor: String(descontoParam),
+            freteValor: String(freteParam),
+            metodo,
+            obsGeral,
+          })
+        );
+        Alert.alert(
+          "Login necessário",
+          "Para finalizar sua compra, faça login ou crie uma conta. Seu carrinho será mantido.",
+          [
+            { text: "Cancelar", style: "cancel" },
+            {
+              text: "Fazer login",
+              onPress: () => router.push("/entrar"),
+            },
+          ]
+        );
+        return;
+      }
 
       // 1. Criar pedido
       const pedidoPayload = {
         cliente: { id: userId },
         loja: { id: lojaId },
+
+        tipoEntrega:
+          (modoEntregaParam === "retirada" ? "RETIRADA" : "ENTREGA") as "RETIRADA" | "ENTREGA",
+
         formaPagamento: metodo,
-        enderecoEntrega: modoEntrega === "retirada" ? "Retirada na loja" : enderecoFormatado,
+
+        enderecoEntrega:
+          modoEntregaParam === "retirada"
+            ? "Retirada na loja"
+            : enderecoFormatado,
+
         observacao: obsGeral || undefined,
         agendado,
-        dataEntregaAgendada: agendado && dataAgend ? dataAgend : null,
+        dataEntregaAgendada: agendado && dataAgend ? toIsoDateTime(dataAgend) : null,
         cupom: cupomParam || null,
+
         itens: itens.map((item: any) => ({
           produto: { id: item.id },
           quantidade: item.quantidade,
           precoUnitario: item.preco,
         })),
       };
+
       console.log("[CHECKOUT] POST /api/pedidos:", JSON.stringify(pedidoPayload, null, 2));
       setEtapaMsg("Registrando pedido...");
       const pedidoCriado = await criarPedido(pedidoPayload);
