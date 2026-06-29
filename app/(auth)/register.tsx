@@ -15,6 +15,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useState } from "react";
 import { register } from "../../services/authService";
+import { isValidCpf } from "../../utils/cpf";
+
+import * as cpfUtils from "../../utils/cpf";
+
+console.log(cpfUtils);
 
 const inputStyle = {
   backgroundColor: "#f9f3fb",
@@ -55,6 +60,7 @@ export default function RegisterScreen() {
   const [nome, setNome] = useState("");
   const [apelido, setApelido] = useState("");
   const [cpf, setCpf] = useState("");
+  const [cpfErro, setCpfErro] = useState<string | null>(null);
   const [dataNascimento, setDataNascimento] = useState("");
   const [telefone, setTelefone] = useState("");
 
@@ -78,10 +84,11 @@ export default function RegisterScreen() {
       return;
     }
 
-    if (cpfLimpo.length !== 11) {
-      Alert.alert("Atenção", "CPF inválido.");
+    if (!isValidCpf(cpfLimpo)) {
+      setCpfErro("CPF inválido.");
       return;
     }
+
 
     if (!dataNascimento.trim()) {
       Alert.alert("Atenção", "Informe a data de nascimento.");
@@ -209,7 +216,8 @@ export default function RegisterScreen() {
         return;
       }
 
-      Alert.alert("Erro", e.message);
+      // Show the exact message returned by the backend (HTTP 400 or any other error)
+      Alert.alert("Erro no cadastro", e.message ?? "Não foi possível concluir o cadastro.");
     } finally {
       setLoading(false);
     }
@@ -237,7 +245,7 @@ export default function RegisterScreen() {
         >
           <Image
             source={require("../../assets/images/logo.png")}
-            style={{ width: 95, height: 95, borderRadius: 70}}
+            style={{ width: 95, height: 95, borderRadius: 70 }}
           />
         </View>
 
@@ -376,10 +384,27 @@ export default function RegisterScreen() {
                 placeholderTextColor="#aaa"
                 keyboardType="numeric"
                 value={cpf}
-                onChangeText={(v) => setCpf(maskCpf(v))}
+                onChangeText={(v) => {
+                  const masked = maskCpf(v);
+                  setCpf(masked);
+                  const digits = masked.replace(/\D/g, "");
+                  if (digits.length === 11) {
+                    setCpfErro(cpfUtils.isValidCpf(digits) ? null : "CPF inválido.");
+                  } else {
+                    setCpfErro(null);
+                  }
+                }}
                 maxLength={14}
-                style={inputStyle}
+                style={[
+                  inputStyle,
+                  cpfErro ? { borderColor: "#ef4444", marginBottom: 4 } : {},
+                ]}
               />
+              {cpfErro ? (
+                <Text style={{ color: "#ef4444", fontSize: 12, marginBottom: 16, marginTop: -2 }}>
+                  {cpfErro}
+                </Text>
+              ) : null}
 
               <Text style={labelStyle}>Data de Nascimento *</Text>
               <TextInput
