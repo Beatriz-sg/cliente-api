@@ -15,11 +15,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useState } from "react";
 import { register } from "../../services/authService";
+
 import { isValidCpf } from "../../utils/cpf";
-
-import * as cpfUtils from "../../utils/cpf";
-
-console.log(cpfUtils);
 
 const inputStyle = {
   backgroundColor: "#f9f3fb",
@@ -64,7 +61,16 @@ export default function RegisterScreen() {
   const [dataNascimento, setDataNascimento] = useState("");
   const [telefone, setTelefone] = useState("");
 
-  // Etapa 2 — Acesso
+  // Etapa 2 — Endereço
+  const [cep, setCep] = useState("");
+  const [endereco, setEndereco] = useState("");
+  const [numeroEndereco, setNumeroEndereco] = useState("");
+  const [complemento, setComplemento] = useState("");
+  const [bairro, setBairro] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [uf, setUf] = useState("");
+
+  // Etapa 3 — Acesso
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
@@ -88,6 +94,8 @@ export default function RegisterScreen() {
       setCpfErro("CPF inválido.");
       return;
     }
+
+    setCpfErro(null);
 
 
     if (!dataNascimento.trim()) {
@@ -138,7 +146,54 @@ export default function RegisterScreen() {
       return;
     }
 
-    setEtapa(2);
+    setEtapa(2); // → endereço
+  }
+
+  function maskCep(v: string) {
+    const d = v.replace(/\D/g, "").slice(0, 8);
+    return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+  }
+
+  async function handleCepChange(v: string) {
+    const masked = maskCep(v);
+    setCep(masked);
+    const limpo = masked.replace(/\D/g, "");
+    if (limpo.length === 8) {
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${limpo}/json/`);
+        const data = await res.json();
+        if (!data.erro) {
+          setEndereco(data.logradouro ?? "");
+          setBairro(data.bairro ?? "");
+          setCidade(data.localidade ?? "");
+          setUf(data.uf ?? "");
+        }
+      } catch { /* silent — user can fill manually */ }
+    }
+  }
+
+  function handleProximoEndereco() {
+    if (!cep.replace(/\D/g, "")) {
+      Alert.alert("Atenção", "Informe o CEP.");
+      return;
+    }
+    if (!endereco.trim()) {
+      Alert.alert("Atenção", "Informe o logradouro.");
+      return;
+    }
+    if (!numeroEndereco.trim()) {
+      Alert.alert("Atenção", "Informe o número.");
+      return;
+    }
+    if (!cidade.trim()) {
+      Alert.alert("Atenção", "Informe a cidade.");
+      return;
+    }
+    if (!uf.trim()) {
+      Alert.alert("Atenção", "Informe o estado (UF).");
+      return;
+    }
+    setEtapa(3); // → dados de acesso
   }
 
   function maskDate(v: string) {
@@ -176,6 +231,13 @@ export default function RegisterScreen() {
         senha,
         ...(apelido.trim() && { apelido: apelido.trim() }),
         ...(telefone.trim() && { telefone: telefone.replace(/\D/g, "") }),
+        ...(cep.trim() && { cep: cep.replace(/\D/g, "") }),
+        ...(endereco.trim() && { endereco: endereco.trim() }),
+        ...(numeroEndereco.trim() && { numeroEndereco: numeroEndereco.trim() }),
+        ...(complemento.trim() && { complemento: complemento.trim() }),
+        ...(bairro.trim() && { bairro: bairro.trim() }),
+        ...(cidade.trim() && { cidade: cidade.trim() }),
+        ...(uf.trim() && { uf: uf.trim().toUpperCase() }),
       };
       await register(payload);
 
@@ -273,7 +335,7 @@ export default function RegisterScreen() {
               gap: 8,
             }}
           >
-            {[1, 2].map((n) => (
+            {[1, 2, 3].map((n) => (
               <View
                 key={n}
                 style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
@@ -298,7 +360,7 @@ export default function RegisterScreen() {
                     {n}
                   </Text>
                 </View>
-                {n < 2 && (
+                {n < 3 && (
                   <View
                     style={{
                       width: 40,
@@ -324,7 +386,7 @@ export default function RegisterScreen() {
               }}
             >
               <MaterialIcons
-                name={etapa === 1 ? "person" : "lock"}
+                name={etapa === 1 ? "person" : etapa === 2 ? "place" : "lock"}
                 size={32}
                 color="#fff"
               />
@@ -341,7 +403,7 @@ export default function RegisterScreen() {
               marginBottom: 6,
             }}
           >
-            {etapa === 1 ? "Dados Pessoais 💖" : "Dados de Acesso 💖"}
+            {etapa === 1 ? "Dados Pessoais 💖" : etapa === 2 ? "Endereço 📍" : "Dados de Acesso 💖"}
           </Text>
           <Text
             style={{
@@ -354,7 +416,9 @@ export default function RegisterScreen() {
           >
             {etapa === 1
               ? "Preencha seus dados para continuar"
-              : "Crie seu e-mail e senha de acesso"}
+              : etapa === 2
+                ? "Informe seu endereço de entrega"
+                : "Crie seu e-mail e senha de acesso"}
           </Text>
 
           {/* ── ETAPA 1 ── */}
@@ -389,7 +453,7 @@ export default function RegisterScreen() {
                   setCpf(masked);
                   const digits = masked.replace(/\D/g, "");
                   if (digits.length === 11) {
-                    setCpfErro(cpfUtils.isValidCpf(digits) ? null : "CPF inválido.");
+                    setCpfErro(isValidCpf(digits) ? null : "CPF inválido.");
                   } else {
                     setCpfErro(null);
                   }
@@ -462,8 +526,114 @@ export default function RegisterScreen() {
             </>
           )}
 
-          {/* ── ETAPA 2 ── */}
+          {/* ── ETAPA 2 — ENDEREÇO ── */}
           {etapa === 2 && (
+            <>
+              <Text style={labelStyle}>CEP *</Text>
+              <TextInput
+                placeholder="00000-000"
+                placeholderTextColor="#aaa"
+                keyboardType="numeric"
+                value={cep}
+                onChangeText={handleCepChange}
+                maxLength={9}
+                style={inputStyle}
+              />
+
+              <Text style={labelStyle}>Logradouro *</Text>
+              <TextInput
+                placeholder="Rua, Avenida..."
+                placeholderTextColor="#aaa"
+                value={endereco}
+                onChangeText={setEndereco}
+                style={inputStyle}
+              />
+
+              <View style={{ flexDirection: "row", gap: 10, marginBottom: 20 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={labelStyle}>Nº *</Text>
+                  <TextInput
+                    placeholder="Nº"
+                    placeholderTextColor="#aaa"
+                    keyboardType="numeric"
+                    value={numeroEndereco}
+                    onChangeText={setNumeroEndereco}
+                    style={{ ...inputStyle, marginBottom: 0 }}
+                  />
+                </View>
+                <View style={{ flex: 2 }}>
+                  <Text style={labelStyle}>Complemento</Text>
+                  <TextInput
+                    placeholder="Apto, Bloco..."
+                    placeholderTextColor="#aaa"
+                    value={complemento}
+                    onChangeText={setComplemento}
+                    style={{ ...inputStyle, marginBottom: 0 }}
+                  />
+                </View>
+              </View>
+
+              <Text style={labelStyle}>Bairro</Text>
+              <TextInput
+                placeholder="Bairro"
+                placeholderTextColor="#aaa"
+                value={bairro}
+                onChangeText={setBairro}
+                style={inputStyle}
+              />
+
+              <View style={{ flexDirection: "row", gap: 10, marginBottom: 20 }}>
+                <View style={{ flex: 3 }}>
+                  <Text style={labelStyle}>Cidade *</Text>
+                  <TextInput
+                    placeholder="Cidade"
+                    placeholderTextColor="#aaa"
+                    value={cidade}
+                    onChangeText={setCidade}
+                    style={{ ...inputStyle, marginBottom: 0 }}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={labelStyle}>UF *</Text>
+                  <TextInput
+                    placeholder="SP"
+                    placeholderTextColor="#aaa"
+                    autoCapitalize="characters"
+                    maxLength={2}
+                    value={uf}
+                    onChangeText={(v) => setUf(v.toUpperCase())}
+                    style={{ ...inputStyle, marginBottom: 0 }}
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity
+                onPress={handleProximoEndereco}
+                activeOpacity={0.8}
+                style={{ borderRadius: 18, overflow: "hidden", marginTop: 6 }}
+              >
+                <LinearGradient
+                  colors={["#ff69b4", "#a855f7"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{ paddingVertical: 18, alignItems: "center" }}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 17 }}>
+                    Próximo
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => setEtapa(1)}>
+                <Text style={{ marginTop: 18, textAlign: "center", color: "#444", fontWeight: "bold" }}>
+                  Voltar
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* ── ETAPA 3 — ACESSO ── */}
+          {etapa === 3 && (
             <>
               <Text style={labelStyle}>E-mail *</Text>
               <TextInput
@@ -550,28 +720,15 @@ export default function RegisterScreen() {
                   {loading ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text
-                      style={{
-                        color: "#fff",
-                        fontWeight: "bold",
-                        fontSize: 17,
-                      }}
-                    >
+                    <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 17 }}>
                       Finalizar Cadastro
                     </Text>
                   )}
                 </LinearGradient>
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => setEtapa(1)}>
-                <Text
-                  style={{
-                    marginTop: 18,
-                    textAlign: "center",
-                    color: "#444",
-                    fontWeight: "bold",
-                  }}
-                >
+              <TouchableOpacity onPress={() => setEtapa(2)}>
+                <Text style={{ marginTop: 18, textAlign: "center", color: "#444", fontWeight: "bold" }}>
                   Voltar
                 </Text>
               </TouchableOpacity>

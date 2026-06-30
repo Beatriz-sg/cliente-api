@@ -8,10 +8,18 @@ export interface RegisterPayload {
   cpf: string;
   dataNascimento: string; // formato YYYY-MM-DD
   senha: string;
-  // Opcionais
+  // Opcionais — dados pessoais
   apelido?: string;
   telefone?: string;
   sobrenome?: string;
+  // Opcionais — endereço
+  cep?: string;
+  endereco?: string;
+  numeroEndereco?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  uf?: string;
 }
 
 export interface LoginPayload {
